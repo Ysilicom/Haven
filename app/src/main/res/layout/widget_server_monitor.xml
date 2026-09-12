@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card_background"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Header: Status Dot, Name/Host, Time, Refresh Button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/widget_status_dot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/widget_status_online"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_server_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Server"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_server_host"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Connecting..."
+                android:textColor="#8E9196"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_last_updated"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:text="--:--"
+            android:textColor="#6C7075"
+            android:textSize="11sp" />
+
+        <ImageView
+            android:id="@+id/widget_btn_refresh"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="4dp"
+            android:src="@drawable/ic_widget_refresh"
+            android:contentDescription="Refresh" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#24272C" />
+
+    <!-- CPU Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="38dp"
+            android:layout_height="wrap_content"
+            android:text="CPU"
+            android:textColor="#B0B3B8"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <ProgressBar
+            android:id="@+id/widget_cpu_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="6dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/widget_progress_bar_cpu" />
+
+        <TextView
+            android:id="@+id/widget_cpu_text"
+            android:layout_width="45dp"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="0%"
+            android:textColor="#E0E0E0"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- RAM Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="38dp"
+            android:layout_height="wrap_content"
+            android:text="RAM"
+            android:textColor="#B0B3B8"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <ProgressBar
+            android:id="@+id/widget_ram_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="6dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/widget_progress_bar_ram" />
+
+        <TextView
+            android:id="@+id/widget_ram_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="-- / --"
+            android:textColor="#E0E0E0"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Disk Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="38dp"
+            android:layout_height="wrap_content"
+            android:text="Disk"
+            android:textColor="#B0B3B8"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <ProgressBar
+            android:id="@+id/widget_disk_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="6dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/widget_progress_bar_disk" />
+
+        <TextView
+            android:id="@+id/widget_disk_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="-- / --"
+            android:textColor="#E0E0E0"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Footer: Load and Uptime or Error message -->
+    <TextView
+        android:id="@+id/widget_footer_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="Waiting for data..."
+        android:textColor="#7A7E85"
+        android:textSize="10sp" />
+
+</LinearLayout>

@@ -365,4 +365,11 @@
     <string name="update_notification_channel">App updates</string>
     <string name="update_notification_title">Haven %1$s is available</string>
     <string name="update_notification_text">Tap to open the release page.</string>
+
+    <!-- Server Monitor Widget -->
+    <string name="widget_server_monitor_name">Server Monitor</string>
+    <string name="widget_server_monitor_description">Desktop widget displaying CPU, RAM, and Disk usage of a remote server.</string>
+    <string name="widget_select_server_title">Select Server to Monitor</string>
+    <string name="widget_no_ssh_servers">No SSH connections found. Please create an SSH connection in Haven first.</string>
+    <string name="widget_refresh_interval">Refresh Interval</string>
 </resources>
