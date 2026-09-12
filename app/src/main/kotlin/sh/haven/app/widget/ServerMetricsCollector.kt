@@ -24,22 +24,18 @@ class ServerMetricsCollector @Inject constructor(
         private const val TIMEOUT_MS = 12_000L
 
         // Dual-sample /proc/stat for accurate delta CPU percentage + memory + disk + uptime
-        val PROBE_COMMAND = """
-            cpu1=$(grep '^cpu ' /proc/stat 2>/dev/null);
-            sleep 0.5;
-            cpu2=$(grep '^cpu ' /proc/stat 2>/dev/null);
-            echo "===CPU===";
-            echo "$cpu1";
-            echo "$cpu2";
-            echo "===MEM===";
-            grep -E '^(MemTotal|MemAvailable|MemFree|Buffers|Cached):' /proc/meminfo 2>/dev/null;
-            echo "===DISK===";
-            df -k / 2>/dev/null | tail -n 1;
-            echo "===LOAD===";
-            cat /proc/loadavg 2>/dev/null;
-            echo "===UPTIME===";
-            cat /proc/uptime 2>/dev/null
-        """.trimIndent().replace("\n", " ")
+        const val PROBE_COMMAND = "echo '===CPU==='; " +
+            "grep '^cpu ' /proc/stat 2>/dev/null; " +
+            "sleep 0.5; " +
+            "grep '^cpu ' /proc/stat 2>/dev/null; " +
+            "echo '===MEM==='; " +
+            "grep -E '^(MemTotal|MemAvailable|MemFree|Buffers|Cached):' /proc/meminfo 2>/dev/null; " +
+            "echo '===DISK==='; " +
+            "df -k / 2>/dev/null | tail -n 1; " +
+            "echo '===LOAD==='; " +
+            "cat /proc/loadavg 2>/dev/null; " +
+            "echo '===UPTIME==='; " +
+            "cat /proc/uptime 2>/dev/null"
     }
 
     suspend fun collect(profileId: String): ServerMetrics {
