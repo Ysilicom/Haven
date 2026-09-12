@@ -71,7 +71,7 @@ class ServerMetricsCollector @Inject constructor(
 
             parseMetrics(profileId, profileName, host, exec.stdout)
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to collect metrics for $profileName ($host): ${e.message}")
+            Log.w(TAG, "Failed to collect metrics: ${e.message}")
             ServerMetrics(
                 profileId = profileId,
                 profileName = profileName,
