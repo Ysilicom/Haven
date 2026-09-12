@@ -86,7 +86,7 @@ class ServerWidgetConfigureActivity : ComponentActivity() {
                             title = { Text(stringResource(R.string.widget_select_server_title)) },
                             navigationIcon = {
                                 IconButton(onClick = { finish() }) {
-                                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                                    Icon(Icons.Default.ArrowBack, contentDescription = null)
                                 }
                             },
                         )

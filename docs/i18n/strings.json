@@ -6141,6 +6141,41 @@
       "sr": "Тапните да се отвори страница издања.",
       "zh": "点按打开发行版页面。"
      }
+    },
+    {
+     "name": "widget_server_monitor_name",
+     "en": "Server Monitor",
+     "comment": "Server Monitor Widget",
+     "args": [],
+     "t": {}
+    },
+    {
+     "name": "widget_server_monitor_description",
+     "en": "Desktop widget displaying CPU, RAM, and Disk usage of a remote server.",
+     "comment": "Server Monitor Widget",
+     "args": [],
+     "t": {}
+    },
+    {
+     "name": "widget_select_server_title",
+     "en": "Select Server to Monitor",
+     "comment": "Server Monitor Widget",
+     "args": [],
+     "t": {}
+    },
+    {
+     "name": "widget_no_ssh_servers",
+     "en": "No SSH connections found. Please create an SSH connection in Haven first.",
+     "comment": "Server Monitor Widget",
+     "args": [],
+     "t": {}
+    },
+    {
+     "name": "widget_refresh_interval",
+     "en": "Refresh Interval",
+     "comment": "Server Monitor Widget",
+     "args": [],
+     "t": {}
     }
    ]
   },
