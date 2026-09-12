@@ -227,5 +227,28 @@
         <receiver
             android:name=".agent.ConsentActionReceiver"
             android:exported="false" />
+
+        <!-- Server Monitor Desktop AppWidget -->
+        <receiver
+            android:name=".widget.ServerMonitorWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="sh.haven.app.widget.ACTION_REFRESH_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_server_monitor_info" />
+        </receiver>
+
+        <!-- Configure Activity for Server Monitor Widget -->
+        <activity
+            android:name=".widget.ServerWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Haven">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>
