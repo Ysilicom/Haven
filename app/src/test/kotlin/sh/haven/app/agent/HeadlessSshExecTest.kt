@@ -52,6 +52,10 @@ class HeadlessSshExecTest {
         },
         hostKeyVerifier: HostKeyVerifier = mockk(),
         client: SshClient = mockk(relaxed = true),
+        tunnelResolver: sh.haven.core.tunnel.TunnelResolver = mockk(relaxed = true) {
+            coEvery { havenProxy(any()) } returns null
+            coEvery { release(any()) } returns Unit
+        },
     ): HeadlessSshExec = HeadlessSshExec(
         connectionRepository = connectionRepository,
         sshSessionManager = sshSessionManager,
@@ -61,6 +65,7 @@ class HeadlessSshExecTest {
         hostRediscovery = mockk(relaxed = true) {
             coEvery { rediscover(any()) } returns null
         },
+        tunnelResolver = tunnelResolver,
     ).apply { clientFactory = { client } }
 
     private fun expectMcpError(contains: String, block: suspend () -> Unit) {

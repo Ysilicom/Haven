@@ -50,6 +50,7 @@ class HeadlessSshExec @Inject constructor(
     private val sshIdentityRepository: SshIdentityRepository,
     private val hostKeyVerifier: HostKeyVerifier,
     private val hostRediscovery: sh.haven.feature.connections.HostRediscovery,
+    private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver,
 ) {
     /** Test seam — unit tests swap this to avoid opening real sockets. */
     internal var clientFactory: () -> SshClient = { SshClient() }
@@ -97,10 +98,11 @@ class HeadlessSshExec @Inject constructor(
             bindAddress = profile.bindAddress,
             reconnectPolicy = ConnectionConfig.ReconnectPolicy(autoReconnect = false),
         )
+        val proxy = tunnelResolver.havenProxy(profile)
         val client = clientFactory()
         try {
             val hostKeyEntry = try {
-                client.connect(config, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
+                client.connect(config, proxy = proxy, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
             } catch (e: Exception) {
                 // #376: a network failure on a private address may just mean
                 // DHCP moved the device — follow its host key once, so
@@ -114,7 +116,7 @@ class HeadlessSshExec @Inject constructor(
                 }
                 Log.i(TAG, "'${LogRedact.of(profile.label)}' host rediscovered ${LogRedact.of(profile.host)} → ${LogRedact.of(newHost)} — retrying")
                 try {
-                    client.connect(config.copy(host = newHost), trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
+                    client.connect(config.copy(host = newHost), proxy = proxy, trustedHostCaKeys = hostKeyVerifier.trustedHostCaKeys())
                 } catch (e2: Exception) {
                     throw McpError(-32603, "Connect to '${profile.label}' failed after host rediscovery ($newHost): ${e2.message ?: e2.javaClass.simpleName}")
                 }
@@ -135,6 +137,7 @@ class HeadlessSshExec @Inject constructor(
             return Outcome(client.execCommand(command, timeoutMs), reusedLiveConnection = false)
         } finally {
             runCatching { client.disconnect() }
+            runCatching { tunnelResolver.release(profile.id) }
         }
     }
 

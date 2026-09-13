@@ -63,18 +63,18 @@
             android:id="@+id/widget_btn_refresh"
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
             android:padding="4dp"
             android:src="@drawable/ic_widget_refresh"
             android:contentDescription="Refresh" />
     </LinearLayout>
 
-    <View
+    <ImageView
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="8dp"
         android:layout_marginBottom="8dp"
-        android:background="#24272C" />
+        android:background="#24272C"
+        android:contentDescription="@null" />
 
     <!-- CPU Row -->
     <LinearLayout
@@ -93,7 +93,7 @@
 
         <ProgressBar
             android:id="@+id/widget_cpu_progress"
-            style="?android:attr/progressBarStyleHorizontal"
+            style="@android:style/Widget.ProgressBar.Horizontal"
             android:layout_width="0dp"
             android:layout_height="6dp"
             android:layout_marginStart="4dp"
@@ -131,7 +131,7 @@
 
         <ProgressBar
             android:id="@+id/widget_ram_progress"
-            style="?android:attr/progressBarStyleHorizontal"
+            style="@android:style/Widget.ProgressBar.Horizontal"
             android:layout_width="0dp"
             android:layout_height="6dp"
             android:layout_marginStart="4dp"
@@ -169,7 +169,7 @@
 
         <ProgressBar
             android:id="@+id/widget_disk_progress"
-            style="?android:attr/progressBarStyleHorizontal"
+            style="@android:style/Widget.ProgressBar.Horizontal"
             android:layout_width="0dp"
             android:layout_height="6dp"
             android:layout_marginStart="4dp"

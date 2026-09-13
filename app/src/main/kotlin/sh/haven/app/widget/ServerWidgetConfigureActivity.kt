@@ -135,6 +135,18 @@ class ServerWidgetConfigureActivity : ComponentActivity() {
         // Save preference linking this widget to this profile
         widgetPrefs.saveWidgetConfig(appWidgetId, profile.id)
 
+        // Push initial placeholder views immediately so the launcher displays the widget right away
+        val appWidgetManager = AppWidgetManager.getInstance(this)
+        val initialViews = ServerMonitorWidgetProvider.buildRemoteViews(
+            context = this,
+            appWidgetId = appWidgetId,
+            metrics = null,
+            profileName = profile.label.ifBlank { profile.host },
+            host = profile.host,
+            isRefreshing = true,
+        )
+        appWidgetManager.updateAppWidget(appWidgetId, initialViews)
+
         // Trigger immediate background metric probe
         ServerMonitorWidgetProvider.triggerImmediateRefresh(this, appWidgetId)
         ServerMonitorWidgetProvider.schedulePeriodicUpdates(this)
