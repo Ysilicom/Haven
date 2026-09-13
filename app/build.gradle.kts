@@ -10,7 +10,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "sh.haven.app"
+        applicationId = "sh.haven.app.widget"
         minSdk = 26
         targetSdk = 35
         versionCode = 843
