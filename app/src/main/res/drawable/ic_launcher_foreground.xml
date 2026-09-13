@@ -7,9 +7,9 @@
 
     <!-- Terminal prompt bracket > with key icon -->
     <path
-        android:fillColor="#FFFFFF"
+        android:fillColor="#00E676"
         android:pathData="M32,40 L52,54 L32,68 L36,72 L60,54 L36,36 Z" />
     <path
-        android:fillColor="#FFFFFF"
+        android:fillColor="#00E676"
         android:pathData="M62,64 L78,64 L78,68 L62,68 Z" />
 </vector>
