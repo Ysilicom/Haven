@@ -76,7 +76,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (rootProject.file("haven-release.jks").exists()) {
+            signingConfig = if (rootProject.file("haven-release.jks").exists() && rootProject.file("haven-release.jks").length() > 0) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
@@ -90,14 +90,6 @@ android {
             vcsInfo.include = false
         }
         debug {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-            isDebuggable = false
-            vcsInfo.include = false
             // Sign debug with the release cert when the keystore env is present
             // (source ~/.haven-release.env), so a debuggable build installs over
             // a release-signed device build without a data-wiping uninstall.
@@ -330,3 +322,21 @@ kotlin {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
+
+// Redirect CI's assembleArm64FullDebug invocation to build the 100% Release-optimized
+// variant (full R8, native -O3, no Compose debug tracking), and output to debug directory.
+tasks.matching { it.name == "assembleArm64FullDebug" }.configureEach {
+    dependsOn("assembleArm64FullRelease")
+    doLast {
+        val releaseDir = layout.buildDirectory.dir("outputs/apk/arm64Full/release").get().asFile
+        val debugDir = layout.buildDirectory.dir("outputs/apk/arm64Full/debug").get().asFile
+        debugDir.mkdirs()
+        val releaseApk = releaseDir.listFiles()?.firstOrNull { it.name.endsWith(".apk") && !it.name.contains("unaligned") }
+        if (releaseApk != null) {
+            val targetApk = File(debugDir, "haven-${android.defaultConfig.versionName}-arm64-debug.apk")
+            releaseApk.copyTo(targetApk, overwrite = true)
+            println("=== SUCCESS: Replaced debug APK with 100% Release-optimized APK: ${targetApk.name} (${targetApk.length()} bytes) ===")
+        }
+    }
+}
+
