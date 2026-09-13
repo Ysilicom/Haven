@@ -70,13 +70,23 @@ val buildPrnsNative by tasks.registering(Exec::class) {
     // recipe's rustup line). Also upgrades a ref-name "pin" to a real one.
     environment("RUSTUP_TOOLCHAIN", "1.94.1")
 
-    // Adding an ABI to the APK means adding it here in the same change —
-    // a missing target ships a silently absent (or stale) library.
-    commandLine(
-        "cargo", "ndk", "-o", jniDir.absolutePath,
-        "-t", "arm64-v8a", "-t", "armeabi-v7a", "-t", "x86_64",
-        "build", "--release",
-    )
+    val targetAbi = providers.gradleProperty("targetAbi").orNull
+    val cargoTargets = if (targetAbi != null) {
+        val abi = when (targetAbi) {
+            "arm64" -> "arm64-v8a"
+            "armv7" -> "armeabi-v7a"
+            "x64" -> "x86_64"
+            else -> targetAbi
+        }
+        listOf("-t", abi)
+    } else {
+        listOf("-t", "arm64-v8a", "-t", "armeabi-v7a", "-t", "x86_64")
+    }
+
+    val args = mutableListOf("cargo", "ndk", "-o", jniDir.absolutePath)
+    args.addAll(cargoTargets)
+    args.addAll(listOf("build", "--release"))
+    commandLine(args)
 }
 
 tasks.configureEach {

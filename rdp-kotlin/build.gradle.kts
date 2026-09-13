@@ -67,12 +67,23 @@ val buildRdpNative by tasks.registering(Exec::class) {
         environment("ANDROID_NDK_HOME", ndkHome)
     }
 
-    commandLine("cargo", "ndk",
-        "-o", jniDir.absolutePath,
-        "-t", "arm64-v8a",
-        "-t", "armeabi-v7a",
-        "-t", "x86_64",
-        "build", "--release")
+    val targetAbi = providers.gradleProperty("targetAbi").orNull
+    val cargoTargets = if (targetAbi != null) {
+        val abi = when (targetAbi) {
+            "arm64" -> "arm64-v8a"
+            "armv7" -> "armeabi-v7a"
+            "x64" -> "x86_64"
+            else -> targetAbi
+        }
+        listOf("-t", abi)
+    } else {
+        listOf("-t", "arm64-v8a", "-t", "armeabi-v7a", "-t", "x86_64")
+    }
+
+    val args = mutableListOf("cargo", "ndk", "-o", jniDir.absolutePath)
+    args.addAll(cargoTargets)
+    args.addAll(listOf("build", "--release"))
+    commandLine(args)
 }
 
 // No publishing block needed — consumed via includeBuild() in settings.gradle.kts

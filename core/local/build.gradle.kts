@@ -12,12 +12,19 @@ android {
     defaultConfig {
         minSdk = 26
 
-        externalNativeBuild {
-            cmake {}
-        }
-
+        val targetAbi = providers.gradleProperty("targetAbi").orNull
         ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64", "armeabi-v7a")
+            if (targetAbi != null) {
+                val abi = when (targetAbi) {
+                    "arm64" -> "arm64-v8a"
+                    "armv7" -> "armeabi-v7a"
+                    "x64" -> "x86_64"
+                    else -> targetAbi
+                }
+                abiFilters += abi
+            } else {
+                abiFilters += listOf("arm64-v8a", "x86_64", "armeabi-v7a")
+            }
         }
     }
 
