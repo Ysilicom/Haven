@@ -17,10 +17,26 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import sh.haven.app.MainActivity
 import sh.haven.app.R
+import android.content.BroadcastReceiver
+import android.util.Log
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface WidgetEntryPoint {
+    fun metricsCollector(): ServerMetricsCollector
+    fun widgetPrefs(): ServerWidgetPreferences
+}
 
 /**
  * ServerBox-style desktop AppWidget displaying real-time hardware status
@@ -144,17 +160,44 @@ class ServerMonitorWidgetProvider : AppWidgetProvider() {
             )
         }
 
-        fun triggerImmediateRefresh(context: Context, appWidgetId: Int) {
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
+        fun triggerImmediateRefresh(
+            context: Context,
+            appWidgetId: Int,
+            pendingResult: BroadcastReceiver.PendingResult? = null,
+        ) {
+            val appWidgetManager = AppWidgetManager.getInstance(context) ?: run {
+                pendingResult?.finish()
+                return
+            }
 
-            val workRequest = OneTimeWorkRequestBuilder<ServerWidgetWorker>()
-                .setConstraints(constraints)
-                .setInputData(workDataOf(ServerWidgetWorker.KEY_APP_WIDGET_ID to appWidgetId))
-                .build()
-
-            WorkManager.getInstance(context).enqueue(workRequest)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val entryPoint = EntryPointAccessors.fromApplication(
+                        context.applicationContext,
+                        WidgetEntryPoint::class.java,
+                    )
+                    val collector = entryPoint.metricsCollector()
+                    val prefs = entryPoint.widgetPrefs()
+                    val profileId = prefs.getProfileId(appWidgetId)
+                    if (profileId != null) {
+                        val metrics = collector.collect(profileId)
+                        prefs.saveCachedMetrics(appWidgetId, metrics)
+                        val views = buildRemoteViews(
+                            context = context,
+                            appWidgetId = appWidgetId,
+                            metrics = metrics,
+                            profileName = metrics.profileName,
+                            host = metrics.host,
+                            isRefreshing = false,
+                        )
+                        appWidgetManager.updateAppWidget(appWidgetId, views)
+                    }
+                } catch (e: Exception) {
+                    Log.w("ServerMonitorWidget", "Failed to refresh widget $appWidgetId: ${e.message}", e)
+                } finally {
+                    pendingResult?.finish()
+                }
+            }
         }
     }
 
@@ -205,7 +248,8 @@ class ServerMonitorWidgetProvider : AppWidgetProvider() {
                 )
                 appWidgetManager.updateAppWidget(appWidgetId, views)
 
-                triggerImmediateRefresh(context, appWidgetId)
+                val pending = goAsync()
+                triggerImmediateRefresh(context, appWidgetId, pending)
             }
         }
     }

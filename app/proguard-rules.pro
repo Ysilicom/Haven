@@ -216,3 +216,16 @@
 # Desktop AppWidget components and workers
 -keep class sh.haven.app.widget.** { *; }
 
+# WorkManager reflection (InputMerger, ListenableWorker, etc.)
+-keep class * extends androidx.work.InputMerger {
+    public <init>();
+}
+-keep class androidx.work.OverwritingInputMerger {
+    public <init>();
+}
+-keep class * extends androidx.work.ListenableWorker {
+    public <init>(...);
+}
+-keep class androidx.work.** { *; }
+
+
