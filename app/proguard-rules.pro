@@ -212,3 +212,7 @@
 # Found on-device while making overlay windows dumpable (#355).
 -keep class androidx.compose.ui.platform.AndroidComposeView { *; }
 -keep class androidx.compose.ui.semantics.SemanticsOwner { *; }
+
+# Desktop AppWidget components and workers
+-keep class sh.haven.app.widget.** { *; }
+

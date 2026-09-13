@@ -76,7 +76,11 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (rootProject.file("haven-release.jks").exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -86,6 +90,14 @@ android {
             vcsInfo.include = false
         }
         debug {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            isDebuggable = false
+            vcsInfo.include = false
             // Sign debug with the release cert when the keystore env is present
             // (source ~/.haven-release.env), so a debuggable build installs over
             // a release-signed device build without a data-wiping uninstall.
