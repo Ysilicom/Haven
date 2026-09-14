@@ -117,6 +117,8 @@ import androidx.core.view.WindowCompat
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import sh.haven.core.ui.findActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.connectbot.terminal.ModifierManager
 import org.connectbot.terminal.TerminalEmulator
@@ -295,15 +297,15 @@ fun TerminalScreen(
     // pattern in VncScreen / RdpScreen.
     var fullscreen by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
-    val window = (view.context as? android.app.Activity)?.window
-    LaunchedEffect(fullscreen) {
+    val window = remember(view) { view.context.findActivity()?.window }
+    LaunchedEffect(fullscreen, window) {
         onFullscreenChanged(fullscreen)
         if (window != null) {
-            val controller = WindowCompat.getInsetsController(window, view)
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
             if (fullscreen) {
-                controller.hide(WindowInsetsCompat.Type.systemBars())
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.systemBars())
             } else {
                 controller.show(WindowInsetsCompat.Type.systemBars())
             }
@@ -316,7 +318,7 @@ fun TerminalScreen(
             // the system bars come back so the next surface isn't stuck
             // edge-to-edge.
             if (fullscreen && window != null) {
-                WindowCompat.getInsetsController(window, view)
+                WindowCompat.getInsetsController(window, window.decorView)
                     .show(WindowInsetsCompat.Type.systemBars())
                 onFullscreenChanged(false)
             }

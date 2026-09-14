@@ -120,6 +120,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import sh.haven.core.ui.findActivity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
@@ -195,16 +196,16 @@ fun RdpSessionContent(
 
     var fullscreen by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
-    val window = (view.context as? android.app.Activity)?.window
+    val window = remember(view) { view.context.findActivity()?.window }
 
-    LaunchedEffect(fullscreen) {
+    LaunchedEffect(fullscreen, window) {
         onFullscreenChanged(fullscreen)
         if (window != null) {
-            val controller = WindowCompat.getInsetsController(window, view)
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
             if (fullscreen) {
-                controller.hide(WindowInsetsCompat.Type.systemBars())
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.systemBars())
             } else {
                 controller.show(WindowInsetsCompat.Type.systemBars())
             }
@@ -218,7 +219,7 @@ fun RdpSessionContent(
     DisposableEffect(Unit) {
         onDispose {
             if (fullscreen && window != null) {
-                val controller = WindowCompat.getInsetsController(window, view)
+                val controller = WindowCompat.getInsetsController(window, window.decorView)
                 controller.show(WindowInsetsCompat.Type.systemBars())
                 onFullscreenChanged(false)
             }

@@ -18,9 +18,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import sh.haven.core.ui.findActivity
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
@@ -527,6 +534,34 @@ fun HavenNavHost(
     var desktopFullscreen by remember { mutableStateOf(false) }
     // Terminal fullscreen — same chrome behaviour, owned by TerminalScreen (#138)
     var terminalFullscreen by remember { mutableStateOf(false) }
+
+    // Drive window-level immersive fullscreen (decor-fits-system-windows false +
+    // hide status/nav bars with swipe-to-reveal) from the root nav host so content
+    // extends edge-to-edge into status bar and cutout areas.
+    val currentActivity = LocalActivity.current ?: LocalContext.current.findActivity()
+    val navHostWindow = currentActivity?.window
+    val anyFullscreen = desktopFullscreen || terminalFullscreen
+    LaunchedEffect(anyFullscreen, navHostWindow) {
+        if (navHostWindow != null) {
+            val controller = WindowCompat.getInsetsController(navHostWindow, navHostWindow.decorView)
+            if (anyFullscreen) {
+                controller.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+    DisposableEffect(navHostWindow) {
+        onDispose {
+            if (navHostWindow != null) {
+                val controller = WindowCompat.getInsetsController(navHostWindow, navHostWindow.decorView)
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
     // Exit a tab's fullscreen mode when the pager settles on a different
     // tab. Without this, switching from a fullscreen Terminal/Desktop to
     // (e.g.) Keys leaves `terminalFullscreen = true`, which disables
@@ -908,7 +943,11 @@ fun HavenNavHost(
                 MaterialTheme.colorScheme.background.copy(alpha = appBackgroundOpacity)
             else -> MaterialTheme.colorScheme.background
         },
-        contentWindowInsets = ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.ime),
+        contentWindowInsets = if (desktopFullscreen || terminalFullscreen) {
+            WindowInsets(0, 0, 0, 0)
+        } else {
+            ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.ime)
+        },
         snackbarHost = { SnackbarHost(globalSnackbarHostState) },
         bottomBar = {
             // hideNavBarInTerminal (#521) hides only Haven's own tab bar while
@@ -1018,11 +1057,16 @@ fun HavenNavHost(
             }
         },
     ) { innerPadding ->
+        val effectivePadding = if (desktopFullscreen || terminalFullscreen) {
+            PaddingValues(0.dp)
+        } else {
+            innerPadding
+        }
         if (useSideNavigation) {
             Row(
                 modifier = Modifier
-                    .padding(innerPadding)
-                    .consumeWindowInsets(innerPadding)
+                    .padding(effectivePadding)
+                    .consumeWindowInsets(effectivePadding)
                     .imePadding(),
             ) {
                 if (!desktopFullscreen && !terminalFullscreen) {
@@ -1067,8 +1111,8 @@ fun HavenNavHost(
         } else {
             pagerContent(
                 Modifier
-                    .padding(innerPadding)
-                    .consumeWindowInsets(innerPadding)
+                    .padding(effectivePadding)
+                    .consumeWindowInsets(effectivePadding)
                     .imePadding(),
             )
         }

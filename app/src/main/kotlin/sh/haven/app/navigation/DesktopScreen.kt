@@ -1,5 +1,6 @@
 package sh.haven.app.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -97,6 +98,7 @@ fun DesktopScreen(
     val anyConnected by desktopViewModel.activeTabConnected.collectAsState()
 
     LaunchedEffect(anyConnected) { onConnectedChanged(anyConnected) }
+    BackHandler(enabled = fullscreen) { onFullscreenChanged(false) }
 
     // Surface transient errors from background tasks (desktop start
     // failures, timeouts — #169). Toast is consistent with how
@@ -243,6 +245,7 @@ fun DesktopScreen(
                             onKeyUp = { keySym -> desktopViewModel.sendVncKey(keySym, false) },
                             onDisconnect = { desktopViewModel.closeTab(tab.id) },
                             onFullscreenChanged = onFullscreenChanged,
+                            fullscreenOverride = fullscreen,
                             cursor = tab.cursor,
                             pointerPos = tab.pointerPos,
                             inputMode = inputMode,
