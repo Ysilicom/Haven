@@ -91,10 +91,8 @@ import sh.haven.feature.connections.ConnectionsViewModel
 import sh.haven.feature.keys.KeysScreen
 import sh.haven.feature.mail.MailScreen
 import sh.haven.feature.settings.SettingsScreen
-import androidx.compose.ui.unit.dp
 import sh.haven.feature.sftp.SftpScreen
 import sh.haven.feature.sftp.SftpViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.feature.terminal.TerminalScreen
 import kotlin.math.abs
 import kotlin.math.roundToInt
