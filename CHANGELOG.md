@@ -5,6 +5,34 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.87.86
+
+- **USB card rescue console (live route)**. A failing SD card can now be rescued in seconds instead of minutes: Desktop tab → Manage → "Open USB card directly (rescue console)". The card's raw sectors are served over NBD to the Linux guest, which attaches it as `/dev/nbd0` and prints the `ddrescue`/`mdir` command lines — the VM route stays for file browsing. Read-only by default; rescued images are written to Haven's `uml/share` app folder via the guest's new hostfs share. The guest rootfs image gains ddrescue, nbd-client, mtools, e2fsprogs and util-linux (same 512 MB image, one re-unpack on update, tracked by a version marker). MCP: `open_usb_drive` gains `route:"guest"`, `list_usb_drives` reports `live[]`, `close_usb_drive` takes `kind`.
+
+- Mosh sessions that die on their own now write their transport trace into the connection log. The in-memory trace was only captured on a manual disconnect, so after an auto-recovery the log showed just the healthy replacement session and the freeze window was lost (#421).
+
+## v5.87.85
+
+- Fixed the app closing when opened from the launcher right after using Disconnect All in the connection notification (#640). Disconnect All is meant to close Haven itself at disconnect time, but on devices that silently block the service's background launch the pending exit flag survived, and the next launcher open was finished immediately. Only the service's own launch can exit the app now; a plain open clears the flag instead.
+
+## v5.87.84
+
+- Fixed terminal Copy producing text the user never selected when the viewport was scrolled back into scrollback (#639). The smart-copy heuristics read only the visible screen while the selection resolved against scrollback rows, so a scrolled-back selection could pick up border stripping or URL rebuilding from lines it did not cover. A scrolled-back selection now uses its exact text.
+
+## v5.87.83
+
+- Fixed terminal Copy replacing the selection with surrounding TUI content (#639). The smart-copy panel detection matched any multi-row selection inside a full-screen TUI such as zellij, whose pane borders sit at the same column of every row, and copied whole rows between the borders instead of the highlighted text. Border stripping now applies only when the selection itself crosses a border column, and the border character is excluded when the selection starts on one.
+
+- Fixed the terminal Copy button overwriting the clipboard with an empty clip when the selected rows had scrolled out of the snapshot between the long-press and the tap.
+
+## v5.87.82
+
+- Fixed NetBird tunnels failing to start with `socket protection function not set` (#637). 5.87.81 fixed the WireGuard half of this; the NetBird tunnel type introduced in 5.87.80 hit the same error from its own socket-protection hook, and an embedded NetBird client has no VpnService to satisfy it. NetBird now runs in netstack mode, which makes that hook unnecessary.
+
+## v5.87.81
+
+- Fixed WireGuard tunnels failing to start in v5.87.80 with `socket protection function not set` (#637). The NetBird integration registers an Android socket-protection hook that was also applied to the WireGuard tunnel's UDP binds, and no protect function exists for Haven's userspace tunnels; the WireGuard tunnel start now clears the shared hook list before binding.
+
 ## v5.87.80
 
 - A new GUEST connection type boots a real Linux kernel on the device (UML, arm64 full flavour).

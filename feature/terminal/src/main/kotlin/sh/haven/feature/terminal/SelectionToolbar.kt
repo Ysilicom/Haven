@@ -335,7 +335,11 @@ private fun extractPanelContent(
     startCol: Int,
 ): String {
     val sortedBorders = borderCols.sorted()
-    val leftBorder = sortedBorders.lastOrNull { it < startCol } ?: -1
+    // A border column at or under [startCol] bounds the panel from the left;
+    // content starts after it. Using `<=` (not `<`) keeps the border
+    // character itself out of the copy when the selection begins on the
+    // border column, which full-screen TUIs put at the pane edge (#639).
+    val leftBorder = sortedBorders.lastOrNull { it <= startCol } ?: -1
     val rightBorder = sortedBorders.firstOrNull { it > startCol }
         ?: (lines.maxOfOrNull { it.length } ?: 0)
 
@@ -364,7 +368,19 @@ private fun extractPanelContent(
 internal fun smartCopy(
     controller: SelectionController,
     emulator: org.connectbot.terminal.TerminalEmulator,
+    scrollbackPosition: Int = 0,
 ): String? {
+    // When the viewport is scrolled into scrollback, the selection's rows
+    // resolve against scrollback (getSelectedText is scrollback-aware) while
+    // getSnapshotLineTexts() below returns only the visible screen — the two
+    // coordinate spaces diverge, and the heuristics would match borders or
+    // URL shapes on lines the user never selected. Fall through to the
+    // controller's text. Cost: a hanging-indent wrapped URL read from
+    // scrollback keeps its newline; correct-but-unpolished beats wrong.
+    if (scrollbackPosition > 0) {
+        return controller.getSelectedText().ifEmpty { null }
+    }
+
     val sel = controller.getSelectionRange() ?: return null
     val snapshotLines = getSnapshotLines(emulator) ?: return null
 
@@ -374,7 +390,17 @@ internal fun smartCopy(
 
     val borderCols = findConsistentBorderColumns(fullTexts)
 
-    if (borderCols.isNotEmpty()) {
+    // Only strip panels when the selection itself spans a border column
+    // (#639). A full-screen TUI like zellij draws │ pane borders at the same
+    // columns of every row, so any multi-row selection inside one pane
+    // matched the heuristic, and the copy came back as whole rows between
+    // the borders — including rows and columns the user never highlighted —
+    // instead of the selected text. A selection with no border column
+    // between its own ends stays inside one panel, where the verbatim path
+    // below is exactly the highlighted text.
+    val selStartCol = minOf(sel.startCol, sel.endCol)
+    val selEndCol = maxOf(sel.startCol, sel.endCol)
+    if (borderCols.any { it > selStartCol && it < selEndCol }) {
         // Border-strip path bypasses soft-wrap rejoin: the panel content is
         // bounded by vertical box-drawing characters, so we keep one line
         // per row regardless of wrap state.
@@ -405,13 +431,14 @@ class SmartTerminalClipboard(
     private val delegate: androidx.compose.ui.platform.ClipboardManager,
     private val getEmulator: () -> org.connectbot.terminal.TerminalEmulator,
     private val getController: () -> SelectionController?,
+    private val getScrollbackPosition: () -> Int = { 0 },
 ) : androidx.compose.ui.platform.ClipboardManager by delegate {
 
     override fun setText(annotatedString: AnnotatedString) {
         val controller = getController()
         val emulator = getEmulator()
         if (controller != null) {
-            val processed = smartCopy(controller, emulator)
+            val processed = smartCopy(controller, emulator, getScrollbackPosition())
             // Only substitute when smartCopy produced real content. Emptiness
             // means the emulator snapshot has drifted past the selection rows
             // (e.g. new output arrived between long-press and Copy tap) —
