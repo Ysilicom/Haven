@@ -1,193 +1,122 @@
 <p align="center">
-  <img src="fastlane/metadata/android/en-US/images/icon.png" width="80" alt="Haven icon" />
+  <img src="fastlane/metadata/android/en-US/images/icon.png" width="80" alt="Havenx icon" />
 </p>
 
-<h1 align="center">Haven</h1>
+<h1 align="center">Havenx</h1>
 
 <p align="center">
-  Free, open-source remote access &amp; mobile workspace for Android —<br/>
-  SSH · Mosh · VNC · RDP · SFTP · SMB · email · cloud storage, a local Linux shell, mesh networking, and a consent-gated AI-agent endpoint
+  <b>Android 极客级远程访问与全功能移动工作区（私有定制增强版）</b><br/>
+  SSH · Mosh · VNC · RDP · SFTP · SMB · 桌面监控组件 · 本地 Linux 容器 · Mesh 网络
 </p>
 
-> *"Haven is an interesting vibe coding experiment. Let's see what comes out of it."* — DBP
-
 <p align="center">
-  <a href="https://github.com/GlassHaven/Haven/releases/latest"><img src="https://img.shields.io/github/v/release/GlassHaven/Haven?style=flat-square&label=release&color=blue&sort=date" alt="Release" /></a>
-  <a href="https://f-droid.org/en/packages/sh.haven.app"><img src="https://img.shields.io/f-droid/v/sh.haven.app?style=flat-square" alt="F-Droid" /></a>
-  <a href="https://github.com/GlassHaven/Haven/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/GlassHaven/Haven/actions/workflows/ci.yml/badge.svg?branch=main" alt="Build" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-orange?style=flat-square" alt="License" /></a>
+  <img src="https://img.shields.io/badge/Edition-Havenx%20Private-brightgreen?style=flat-square" alt="Edition" />
+  <img src="https://img.shields.io/badge/Package-sh.haven.app.widget-9cf?style=flat-square" alt="Package" />
   <img src="https://img.shields.io/badge/Android-8.0%2B-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+" />
-  <a href="https://github.com/GlassHaven/Haven/releases"><img src="https://img.shields.io/github/downloads/GlassHaven/Haven/total?style=flat-square&label=downloads&cacheSeconds=3600" alt="Downloads" /></a>
-  <a href="https://ko-fi.com/glassontin"><img src="https://img.shields.io/badge/Ko--fi-support-ff5e5b?style=flat-square&logo=ko-fi&logoColor=white" alt="Ko-fi" /></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/GlassHaven/Haven/releases/latest">GitHub Releases</a> &bull;
-  <a href="https://f-droid.org/en/packages/sh.haven.app">F-Droid</a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.mp4">
-    <img src="docs/haven-transparency.webp" width="300" alt="Terminal transparency over a live device wallpaper — click for full-quality video" />
-  </a>
-</p>
-
-<p align="center">
-  <sub>▶ <a href="https://github.com/GlassHaven/Haven/releases/download/v5.60.4/haven-transparency.mp4">Watch</a>: the terminal — and every Haven screen — made translucent over the device wallpaper (new in 5.60.4). Live wallpaper: <a href="https://magicfluids.com/">MagicFluids</a>.</sub>
+  <img src="https://img.shields.io/badge/Upstream-v5.87.86%20Synced-blue?style=flat-square" alt="Upstream" />
+  <img src="https://img.shields.io/badge/License-AGPL--3.0-orange?style=flat-square" alt="License" />
 </p>
 
 ---
 
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_wayland_desktop.png" width="140" />
-  &nbsp;
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_terminal.png" width="140" />
-  &nbsp;
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_connections.png" width="140" />
-  &nbsp;
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_vnc_desktop.png" width="140" />
-  &nbsp;
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_cloud_storage.png" width="140" />
-  &nbsp;
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7_keys.png" width="140" />
-</p>
+## 🌟 Havenx 核心定制特性
+
+本仓库为基于官方 [GlassHaven/Haven](https://github.com/GlassHaven/Haven) 进行定制增强的私有分支，包含以下专属功能与深度优化：
+
+### 1. 🖥️ ServerBox 风格桌面硬件监控小组件 (`Havenx Widget`)
+- **独立共存**：定制应用包名 `sh.haven.app.widget` 与独立应用名称 `Havenx`，可与官方原版 Haven 在同一台手机上完美共存安装。
+- **桌面状态直读**：桌面小组件即时呈现远程主机的 CPU 占用率、内存使用率、上行/下行网络瞬时速率、系统负载及存储空间。
+- **智能安全探活 (`TunnelResolver`)**：内置隧道解析机制，支持通过 Tailscale 虚拟局域网或 SSH 端口转发安全探活内网主机，无需将服务器暴露在公网。
+- **低功耗与快捷交互**：基于 Android WorkManager 智能后台调度，低开销异步更新；点击桌面卡片一键直达对应主机的终端会话。
+
+### 2. 📱 VNC 沉浸式真·Edge-to-Edge 全屏
+- **全屏沉浸**：全屏模式下突破系统边界，自动延伸至状态栏与底部导航栏，彻底消除黑边与冗余遮挡。
+- **视界最大化**：特别针对横屏操作进行了视觉优化，让手机操作远程桌面（GUI）具备最大可用可视面积与沉浸感。
+
+### 3. ⚡ Tmux 与触控终端平滑滚屏优化
+- **平滑触控步进**：针对手机触控操作优化了终端滚屏阻尼，定制为平滑的 2 行/步进，告别滑动时的眩晕与快速跳行。
+- **终端环境预调**：适配 `xterm-256color` 与 TrueColor 真彩色输出，提供单线精致边框与沉浸式终端敲击体验。
+
+### 4. 🚀 生产级 Release R8 极致压缩与永久独立签名
+- **R8 Release 全量优化**：在 CI 构建流中深度挂载 `assembleArm64FullRelease`，启用全量代码混淆、死代码剔除与资源缩减（Resource Shrinking），关闭调试负担（Non-debuggable），显著降低 APK 体积并提升冷启动响应。
+- **永久独立私钥库**：脱离临时调试签名，采用本地受保护的永久私钥（`havenx-release.jks`）配合自动化重签名脚本（`scripts/sign-havenx.sh`），保障后续每次无论是云端 CI 构建还是本地编译，安装包签名永久一致，随时无缝覆盖升级。
 
 ---
 
-## At a glance
+## 🛠️ 构建与工作流 (Build & Workflow)
 
-- **[Terminal](docs/features/terminal.md)** — Mosh / Eternal Terminal / SSH, tmux-aware session restore, configurable keyboard toolbar, OSC 7/8/9/52/133/777 integration.
-- **[Desktops](docs/features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt), RDP (IronRDP + EGFX), a GPU-accelerated native Wayland compositor, and a multi-distro local-desktop manager.
-- **[Files & cloud](docs/features/files-and-cloud.md)** — unified browser for SFTP/SCP, SMB, and 60+ cloud providers; cross-filesystem copy/move, editor and image tools; plus on-device FFmpeg transcode, HLS streaming, and DLNA.
-- **[Connections](docs/features/connections.md)** — port forwarding (-L/-R/-D/-J), SOCKS/HTTP/Tor proxies, per-app WireGuard & Tailscale tunnels, port knocking and fwknop SPA, and SSH keys (incl. FIDO2/SK).
-- **[Email](docs/features/email.md)** — ProtonMail (bridge protocol) and any IMAP/SMTP mailbox; compose / reply / forward, multi-account, attachments; plus **Mail Rules** inbound automation.
-- **[Local Linux](docs/features/local-linux.md)** — a Linux userland via PRoot (no root, any Android 8+ device): Alpine, Debian, Arch, or Void, side-by-side.
-- **[USB forwarding](docs/features/usb.md)** — broker an attached USB device through Android and re-expose it to the agent, into the Linux guest, or over USB/IP to a **remote host** (e.g. a phone-hosted YubiKey, touch on the phone).
-- **[Reticulum](docs/features/reticulum.md)** — rnsh shell, file transfer, and `-L`/`-D` port forwarding over Reticulum mesh, pure Kotlin. The one transport that keeps working with no internet at all.
-- **[Agent transport (MCP)](docs/mcp-tools.md)** — an optional MCP server exposing ~130 consent-gated, audited tools; the agent can even **see and operate Haven itself** for a self-hosting build → install → verify loop.
-- **[Security](docs/features/security.md)** — biometric lock, no telemetry, encrypted backup/restore (AES-256-GCM).
+### 1. 云端构建 (GitHub Actions CI)
+代码推送到私有仓库 `main` 分支后，GitHub Actions 会自动触发全量构建与测试：
+- **触发路径**：`.github/workflows/ci.yml`
+- **构建产物**：构建完成后在 Actions 运行页面的 Artifacts 下载 `haven-arm64-debug`（已包含 Release 级 R8 优化）。
 
-See [docs/FEATURES.md](docs/FEATURES.md) for the full feature index.
-
-## Why one app
-
-The list above is the parts; the point is how they compose. Each of these is one
-flow inside Haven — no second app, no `curl | ssh` incantation:
-
-- Tap a 4K MKV in Google Drive → FFmpeg transcodes it over HTTP and the result
-  lands back in the same Drive folder, never touching local disk.
-- SSH to a box, forward its port, tap the VNC profile that targets `localhost` —
-  the desktop opens in the same app, keyboard and clipboard shared.
-- Cut a log directory from an S3 bucket, switch tabs, paste it onto an SFTP
-  server — rclone does the server-side copy when it can, otherwise Haven streams
-  it through.
-- Run your agent CLI in the on-device Linux shell; it pushes over the SSH agent
-  you forwarded from your laptop while you watch on the same screen.
-- Cast a cloud video to the TV across the room over HLS, copy the LAN URL from
-  the snackbar, send it to a friend so they can watch too.
-
-The phone is the thin client, Haven is the thin-client OS, and the cloud, your
-servers, and your agents are the computer. Width is sufficient; composition is
-the point. ([Vision](VISION.md).)
-
-## Languages
-
-Available in 12 languages: English, Chinese (simplified), Spanish, Hindi, Arabic (with RTL support), Portuguese, Bengali, Russian, Japanese, Korean, French, and German. The UI follows the device language.
-
-**Want to help translate?** Improve a translation or add a new language straight from the [web translation page](https://glasshaven.github.io/Haven/translate.html) — no cloning or setup; your changes become a GitHub pull request. See [Languages & translation](docs/features/i18n.md) for details.
-
-## Install
-
-| Channel | |
-|---|---|
-| [GitHub Releases](https://github.com/GlassHaven/Haven/releases/latest) | Signed APK, all features |
-| [F-Droid](https://f-droid.org/en/packages/sh.haven.app) | Built from source, all features |
-
-Both builds have the same features — SSH, Mosh, Eternal Terminal, VNC, RDP, SFTP, SMB, email, and cloud storage. IronRDP (Rust) is built from source via `cargo-ndk`. rclone (Go) is built from source via `gomobile`.
-
-> **Pick one channel and stay on it.** The two channels are signed with
-> **different keys** — GitHub Releases use Haven's own release key; F-Droid
-> builds from source and signs with F-Droid's per-app key. Android treats
-> different signing keys as different apps, so you **can't update in place from
-> one channel to the other** — switching means uninstall + reinstall, which
-> clears app data (back up first via **Settings → Backup**). Direct sideloads
-> and Obtainium track the GitHub Releases key.
->
-> Signing certificate SHA-256 (to verify a sideloaded APK with
-> `apksigner verify --print-certs`):
-> - GitHub Releases: `ea03a3a70e1c11d0a78932f959b21f20d8735d9cd750997657cb7f7d7c2b90b3`
-> - F-Droid: `ea05a89431961b8ac53c36725452673c2be1c2d7b6e48771617b974e6092b332`
-
-## Build from source
-
-Requires [Rust](https://rustup.rs/) with Android targets, `cargo-ndk`, [Go](https://go.dev/dl/) 1.26+, and `gomobile`:
-
+### 2. 本地私钥重签名
+从 Actions 下载 APK 后，使用本地专用签名脚本进行重签名：
 ```bash
-# Rust (for RDP)
+# 赋予执行权限并对 APK 签名
+./scripts/sign-havenx.sh path/to/haven-5.87.86-arm64-debug.apk
+```
+签名验证证书指纹：
+```text
+Signer #1 certificate SHA-256: 33:CA:4E:83:6F:C0:17:FC:2D:B8:24:88:1E:C1:5F:CB:52:DA:E0:DA:29:E1:F8:97:5A:54:86:C1:FF:A9:25:17
+```
+
+### 3. 本地全量源码编译
+若在本地环境编译，需准备 Rust (`cargo-ndk`)、Go 1.26+ (`gomobile`) 与 Android SDK：
+```bash
+# 安装 Rust Android target
 rustup target add aarch64-linux-android x86_64-linux-android
 cargo install cargo-ndk
 
-# Go (for rclone cloud storage)
+# 安装 Go 移动端构建依赖
 go install golang.org/x/mobile/cmd/gomobile@latest
 go install golang.org/x/mobile/cmd/gobind@latest
 
-git clone --recurse-submodules https://github.com/GlassHaven/Haven.git
-cd Haven
-./gradlew assembleDebug
+# 本地编译 ARM64
+./gradlew assembleArm64FullDebug
 ```
 
-Output: `app/build/outputs/apk/debug/haven-*-debug.apk`
+---
 
-## Documentation
+## 🔄 上游同步规范 (Upstream Sync Protocol)
 
-- [Features](docs/FEATURES.md) — detailed feature descriptions.
-- [Backup file format](docs/backup-format.md) — wire format, the
-  PBKDF2/AES-GCM envelope, and a Python recipe for manual decryption
-  if the in-app importer fails.
-- [Maintainer Protocol](.claude/skills/maintain/SKILL.md) — the `/maintain`
-  skill driving Haven's maintenance loop (CI triage, release readiness, issue
-  response, and dependency tracking) run by [Qwen3.8-Flash running locally via llama-claude](https://github.com/GlassOnTin/llama-claude), with
-  daily security audit passes performed by GLM5.3-flash.
-- [Release process](RELEASE.md) — versioning, tagging, and F-Droid steps.
-- [Privacy policy](PRIVACY_POLICY.md).
-- [Vision](VISION.md).
+本仓库与官方保持持续追踪与定期合并同步：
+```bash
+# 1. 确保已添加官方上游源
+git remote add upstream https://github.com/GlassHaven/Haven.git
 
-## Third-party libraries
+# 2. 获取上游分支与标签
+git fetch upstream --tags
 
-| Library | Purpose | License |
-|---------|---------|---------|
-| [rclone](https://rclone.org) | Cloud storage engine (60+ providers) | MIT |
-| [IronRDP](https://github.com/Devolutions/IronRDP) | RDP protocol (Rust/UniFFI) | MIT / Apache-2.0 |
-| [JSch](https://github.com/mwiede/jsch) | SSH/SFTP protocol | BSD |
-| [smbj](https://github.com/hierynomus/smbj) | SMB/CIFS protocol | Apache-2.0 |
-| [ConnectBot termlib](https://github.com/connectbot/connectbot) | Terminal emulator | Apache-2.0 |
-| [reticulum-kt](https://github.com/GlassOnTin/reticulum-kt) | Reticulum mesh network transport (Kotlin) | MPL-2.0 |
-| [rnsh-kt](https://github.com/GlassOnTin/rnsh-kt) | Reticulum remote shell client (Kotlin) | AGPL-3.0 |
-| [FFmpeg](https://ffmpeg.org) | Media conversion and streaming | LGPL-2.1 / GPL-2.0 |
-| [PRoot](https://proot-me.github.io) | Local Linux shell (userspace chroot) | GPL-2.0 |
-| [labwc](https://labwc.github.io) | Wayland compositor (native desktop) | GPL-2.0 |
-| [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots) | Wayland compositor library | MIT |
-| [virglrenderer](https://gitlab.freedesktop.org/virgl/virglrenderer) | GPU virtualization (OpenGL passthrough to PRoot apps) | MIT |
-| [Jetpack Compose](https://developer.android.com/jetpack/compose) | UI toolkit | Apache-2.0 |
+# 3. 合并最新官方分支（以 main 为例）
+git checkout main
+git merge upstream/main
 
-## Backing
+# 4. 如遇构建脚本冲突，请确保保留 app/build.gradle.kts 中的 assembleArm64FullDebug release 挂载钩子
+# 5. 校验通过后推送到本私密仓库
+git push origin main --tags
+```
 
-Haven sits on top of the projects listed in the table above — the heavy
-lifting was done long before this repo existed.
+---
 
-Most of the direction Haven has taken has come from the user base, not
-from a roadmap: bug reports, screenshots of edge cases, "have you
-tried…” comments on long issue threads. [Qwen3.8-Flash running locally](https://github.com/GlassOnTin/llama-claude) writes most
-of the actual code; the maintainer's role is closer to that of a
-messenger between the user group and the model: listening, setting
-the agenda, and quality-checking.
+## 🌐 Haven 核心功能矩阵 (At a Glance)
 
-A small recurring amount comes in via [Ko-fi](https://ko-fi.com/glassontin)
-and [Liberapay](https://liberapay.com/GlassOnTin). It helps offset the
-electricity costs of running the work above, and it's a clear
-signal that the work is useful to people. The project continues
-regardless of donations.
+- **[Terminal](docs/features/terminal.md)** — Mosh / Eternal Terminal / SSH，tmux 感知会话恢复，触控平滑滚屏，可定制虚拟键盘，OSC 7/8/9/52/133/777 集成。
+- **[Desktops](docs/features/desktops.md)** — VNC (RFB 3.8 / VeNCrypt)、RDP (IronRDP + EGFX)、GPU 加速原生 Wayland 合成器 (labwc/wlroots)、多发行版 PRoot 容器桌面。
+- **[Files & Cloud](docs/features/files-and-cloud.md)** — SFTP/SCP、SMB 以及通过 rclone 支持的 60+ 种主流云存储；跨文件系统无缝复制移动，内置编辑器与图片查看器；端侧 FFmpeg 转码、HLS 流媒体与 DLNA 投屏。
+- **[Connections](docs/features/connections.md)** — 端口转发 (-L/-R/-D/-J)、SOCKS/HTTP/Tor 代理、应用级 WireGuard 与 Tailscale 隧道、Port Knocking 与 fwknop SPA，支持各类 SSH 密钥（含 FIDO2/SK）。
+- **[Email](docs/features/email.md)** — ProtonMail（Bridge 协议）及任意 IMAP/SMTP 邮箱，支持多账号、附件收发与入站邮件规则过滤。
+- **[Local Linux](docs/features/local-linux.md)** — 基于 PRoot 的免 Root 本地 Linux 环境（Alpine、Debian、Arch、Void），支持同屏并发。
+- **[Reticulum Mesh](docs/features/reticulum.md)** — 基于 Reticulum 网状网络的 rnsh 终端、文件互传与端口转发，无公网连接时仍可工作。
+- **[Security](docs/features/security.md)** — 纯端侧运行、无第三方遥测、支持生物识别解锁与 AES-256-GCM 高强度密文备份。
 
-## License
+详细特性说明请参阅 [docs/FEATURES.md](docs/FEATURES.md)。
 
-[AGPLv3](LICENSE)
+---
+
+## 📄 协议与致谢 (License & Credits)
+
+- 本项目基于 [GlassHaven/Haven](https://github.com/GlassHaven/Haven) 衍生定制。
+- 遵循 **[AGPL-3.0](LICENSE)** 开源协议。
+- 感谢以下核心底层开源组件：
+  - [rclone](https://rclone.org) · [IronRDP](https://github.com/Devolutions/IronRDP) · [JSch](https://github.com/mwiede/jsch) · [PRoot](https://proot-me.github.io) · [labwc](https://labwc.github.io) · [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots) · [virglrenderer](https://gitlab.freedesktop.org/virgl/virglrenderer) · [ConnectBot](https://github.com/connectbot/connectbot) · [Jetpack Compose](https://developer.android.com/jetpack/compose)
