@@ -431,6 +431,8 @@ fun HavenNavHost(
         .collectAsState(initial = false)
     val hideNavBarInTerminal by preferencesRepository.hideNavBarInTerminal
         .collectAsState(initial = false)
+    val terminalImmersiveFullscreen by preferencesRepository.terminalImmersiveFullscreen
+        .collectAsState(initial = false)
     val mouseInputEnabled by preferencesRepository.mouseInputEnabled
         .collectAsState(initial = true)
     val terminalRightClick by preferencesRepository.terminalRightClick
@@ -565,10 +567,12 @@ fun HavenNavHost(
     // (e.g.) Keys leaves `terminalFullscreen = true`, which disables
     // pager swipe (line 277) and strands the user — they'd swiped here
     // but can no longer swipe back. Reported by maintainer 2026-05-07.
-    LaunchedEffect(pagerState.settledPage) {
+    LaunchedEffect(pagerState.settledPage, terminalImmersiveFullscreen) {
         val settled = screens.getOrNull(pagerState.settledPage)
         if (settled != Screen.Terminal && terminalFullscreen) {
             terminalFullscreen = false
+        } else if (settled == Screen.Terminal && terminalImmersiveFullscreen && !terminalFullscreen) {
+            terminalFullscreen = true
         }
         if (settled != Screen.Desktop && desktopFullscreen) {
             desktopFullscreen = false
@@ -723,6 +727,7 @@ fun HavenNavHost(
                         interceptCtrlShiftV = interceptCtrlShiftV,
                         reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
                         showTabBar = showTerminalTabBar,
+                        terminalImmersiveFullscreen = terminalImmersiveFullscreen,
                         onFullscreenChanged = { terminalFullscreen = it },
                         onNavigateToConnections = {
                             coroutineScope.launch {

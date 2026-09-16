@@ -465,6 +465,9 @@ class SettingsViewModel @Inject constructor(
     val hideNavBarInTerminal: StateFlow<Boolean> = preferencesRepository.hideNavBarInTerminal
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val terminalImmersiveFullscreen: StateFlow<Boolean> = preferencesRepository.terminalImmersiveFullscreen
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val connectionLoggingEnabled: StateFlow<Boolean> = preferencesRepository.connectionLoggingEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -824,6 +827,12 @@ class SettingsViewModel @Inject constructor(
     fun setHideNavBarInTerminal(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setHideNavBarInTerminal(enabled)
+        }
+    }
+
+    fun setTerminalImmersiveFullscreen(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setTerminalImmersiveFullscreen(enabled)
         }
     }
 

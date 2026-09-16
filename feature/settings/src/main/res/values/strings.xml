@@ -533,4 +533,6 @@
 Every password, passphrase and secret already stored in Haven will need to be entered again. They are already unreadable — the key that protected them is gone — so this recovers the app rather than losing anything further.</string>
     <string name="settings_credential_reset_confirm">Repair</string>
     <string name="settings_credential_reset_cancel">Cancel</string>
+    <string name="settings_terminal_immersive_fullscreen_title">Terminal immersive fullscreen</string>
+    <string name="settings_terminal_immersive_fullscreen_subtitle">Automatically hide Android status bar and navigation bar when entering the terminal</string>
 </resources>

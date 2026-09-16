@@ -29,11 +29,14 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.FirstPage
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.LastPage
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Mic
+import sh.haven.core.ui.findActivity
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -223,6 +226,8 @@ data class ToolbarCallbacks(
      * own keyboard (Supernote + Futo, etc.).
      */
     val onDictateTap: () -> Unit = {},
+    val isFullscreen: Boolean = false,
+    val onToggleFullscreen: () -> Unit = {},
 )
 
 val LocalToolbarCallbacks = compositionLocalOf<ToolbarCallbacks> {
@@ -299,6 +304,8 @@ fun KeyboardToolbar(
     onAttachTap: () -> Unit = {},
     onOpenTextInput: () -> Unit = {},
     onDictateTap: () -> Unit = {},
+    isFullscreen: Boolean = false,
+    onToggleFullscreen: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var shiftActive by remember { mutableStateOf(false) }
@@ -376,6 +383,8 @@ fun KeyboardToolbar(
         onAttachTap = onAttachTap,
         onOpenTextInput = onOpenTextInput,
         onDictateTap = onDictateTap,
+        isFullscreen = isFullscreen,
+        onToggleFullscreen = onToggleFullscreen,
     )
 
     CompositionLocalProvider(
@@ -388,7 +397,7 @@ fun KeyboardToolbar(
             modifier = modifier.pointerInput(reorderMode) {
                 if (reorderMode) return@pointerInput
                 detectVerticalDragGestures { _, dragAmount ->
-                    val window = (view.context as? android.app.Activity)?.window
+                    val window = view.context.findActivity()?.window
                         ?: return@detectVerticalDragGestures
                     val controller = WindowCompat.getInsetsController(window, view)
                     if (dragAmount > 15f) {
@@ -1023,7 +1032,7 @@ private fun BuiltInKey(
                     )
                     .combinedClickable(
                         onClick = {
-                            val window = (view.context as? Activity)?.window ?: return@combinedClickable
+                            val window = view.context.findActivity()?.window ?: return@combinedClickable
                             val controller = WindowCompat.getInsetsController(window, view)
                             if (imeVisible) {
                                 controller.hide(WindowInsetsCompat.Type.ime())
@@ -1088,6 +1097,28 @@ private fun BuiltInKey(
             active = cb.composeModeActive,
             onClick = cb.onToggleComposeMode,
         )
+        ToolbarKey.FULLSCREEN -> {
+            ToolbarIconButton(
+                icon = if (cb.isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
+                description = stringResource(
+                    if (cb.isFullscreen) R.string.toolbar_exit_fullscreen else R.string.toolbar_enter_fullscreen
+                ),
+                onClick = cb.onToggleFullscreen,
+            )
+        }
+        ToolbarKey.TMUX -> {
+            var showTmuxSheet by remember { mutableStateOf(false) }
+            ToolbarTextButton("TMUX") { showTmuxSheet = true }
+            if (showTmuxSheet) {
+                TmuxQuickBottomSheet(
+                    onDismiss = { showTmuxSheet = false },
+                    onSendBytes = { bytes ->
+                        cb.onSendBytes(bytes)
+                        showTmuxSheet = false
+                    },
+                )
+            }
+        }
         ToolbarKey.PASTE -> ToolbarTextButton("Paste") {
             val text = cb.clipboardManager?.primaryClip
                 ?.getItemAt(0)?.text?.toString()
@@ -1447,6 +1478,7 @@ private fun keyIcon(key: ToolbarKey): ImageVector? = when (key) {
     ToolbarKey.VOICE_INPUT -> Icons.Filled.Mic
     ToolbarKey.HOME -> Icons.Filled.FirstPage
     ToolbarKey.END -> Icons.Filled.LastPage
+    ToolbarKey.FULLSCREEN -> Icons.Filled.Fullscreen
     else -> null
 }
 

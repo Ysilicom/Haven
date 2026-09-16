@@ -499,4 +499,6 @@
     <string name="settings_update_check_up_to_date">مُحدَّث على %1$s</string>
     <string name="settings_update_check_failed">فشل التحقق: %1$s</string>
     <string name="settings_update_check_other_channel">لم تُثبَّت هذه النسخة من إصدار GitHub، لذا لا يمكن لتنزيل الإصدار أن يحل محلها. حدِّث من حيث ثبَّتَ Haven.</string>
+    <string name="settings_terminal_immersive_fullscreen_title">ملء الشاشة الغامر في الطرفية</string>
+    <string name="settings_terminal_immersive_fullscreen_subtitle">إخفاء شريط الحالة وشريط التنقل لنظام Android تلقائيًا عند دخول الطرفية</string>
 </resources>

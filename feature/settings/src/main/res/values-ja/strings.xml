@@ -494,4 +494,6 @@
     <string name="settings_update_check_up_to_date">最新です（%1$s）</string>
     <string name="settings_update_check_failed">確認に失敗しました: %1$s</string>
     <string name="settings_update_check_other_channel">このコピーは GitHub リリースからインストールされていないため、リリースをダウンロードしても上書きインストールできません。Haven を入手した場所から更新してください。</string>
+    <string name="settings_terminal_immersive_fullscreen_title">ターミナルの没入型全画面</string>
+    <string name="settings_terminal_immersive_fullscreen_subtitle">ターミナルに入ったときに Android のステータスバーとナビゲーションバーを自動的に非表示にします</string>
 </resources>

@@ -6862,6 +6862,566 @@
       "sr": "нпр. ^C, Налепи",
       "zh": "例如 ^C、Paste"
      }
+    },
+    {
+     "name": "toolbar_enter_fullscreen",
+     "en": "Enter fullscreen",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "ملء الشاشة",
+      "bn": "ফুলস্ক্রিন প্রবেশ করুন",
+      "de": "Vollbild aktivieren",
+      "es": "Pantalla completa",
+      "fr": "Plein écran",
+      "hi": "फ़ुलस्क्रीन में जाएं",
+      "ja": "全画面表示",
+      "ko": "전체 화면 시작",
+      "pt": "Tela cheia",
+      "ru": "Полноэкранный режим",
+      "sr": "Уђи у пун екран",
+      "zh": "进入全屏"
+     }
+    },
+    {
+     "name": "toolbar_exit_fullscreen",
+     "en": "Exit fullscreen",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "الخروج من ملء الشاشة",
+      "bn": "ফুলস্ক্রিন প্রস্থান করুন",
+      "de": "Vollbild beenden",
+      "es": "Salir de pantalla completa",
+      "fr": "Quitter le plein écran",
+      "hi": "फ़ुलस्क्रीन से बाहर निकलें",
+      "ja": "全画面表示を終了",
+      "ko": "전체 화면 종료",
+      "pt": "Sair da tela cheia",
+      "ru": "Выйти из полноэкранного режима",
+      "sr": "Напусти пун екран",
+      "zh": "退出全屏"
+     }
+    },
+    {
+     "name": "toolbar_tmux_title",
+     "en": "TMUX Shortcuts",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "اختصارات TMUX",
+      "bn": "TMUX শর্টকাট",
+      "de": "TMUX-Aktionen",
+      "es": "Atajos de TMUX",
+      "fr": "Raccourcis TMUX",
+      "hi": "TMUX शॉर्टकट",
+      "ja": "TMUX ショートカット",
+      "ko": "TMUX 바로가기",
+      "pt": "Atalhos TMUX",
+      "ru": "Действия TMUX",
+      "sr": "TMUX пречице",
+      "zh": "TMUX 快捷操作"
+     }
+    },
+    {
+     "name": "toolbar_tmux_cancel",
+     "en": "Cancel",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "إلغاء",
+      "bn": "বাতিল",
+      "de": "Abbrechen",
+      "es": "Cancelar",
+      "fr": "Annuler",
+      "hi": "रद्द करें",
+      "ja": "キャンセル",
+      "ko": "취소",
+      "pt": "Cancelar",
+      "ru": "Отмена",
+      "sr": "Откажи",
+      "zh": "取消"
+     }
+    },
+    {
+     "name": "toolbar_tmux_section_session",
+     "en": "Session",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "الجلسة",
+      "bn": "সেশন",
+      "de": "Sitzung",
+      "es": "Sesión",
+      "fr": "Session",
+      "hi": "सत्र",
+      "ja": "セッション",
+      "ko": "세션",
+      "pt": "Sessão",
+      "ru": "Сессия",
+      "sr": "Сесија",
+      "zh": "会话管理"
+     }
+    },
+    {
+     "name": "toolbar_tmux_section_window",
+     "en": "Window",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "النافذة",
+      "bn": "উইন্ডো",
+      "de": "Fenster",
+      "es": "Ventana",
+      "fr": "Fenêtre",
+      "hi": "विंडो",
+      "ja": "ウィンドウ",
+      "ko": "창",
+      "pt": "Janela",
+      "ru": "Окно",
+      "sr": "Прозор",
+      "zh": "窗口管理"
+     }
+    },
+    {
+     "name": "toolbar_tmux_section_pane",
+     "en": "Panes &amp; Layout",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "الأجزاء والتخطيط",
+      "bn": "প্যান এবং লেআউট",
+      "de": "Bereiche &amp; Layout",
+      "es": "Paneles y diseño",
+      "fr": "Panneaux et disposition",
+      "hi": "फलक और लेआउट",
+      "ja": "ペインとレイアウト",
+      "ko": "창 분할 및 레이아웃",
+      "pt": "Painéis e layout",
+      "ru": "Панели и раскладка",
+      "sr": "Панели и распоред",
+      "zh": "分屏与布局"
+     }
+    },
+    {
+     "name": "toolbar_tmux_attach_session",
+     "en": "Attach or create session",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "الاتصال بجلسة أو إنشاؤها",
+      "bn": "সংযুক্ত করুন বা সেশন তৈরি করুন",
+      "de": "Sitzung verbinden oder erstellen",
+      "es": "Conectar o crear sesión",
+      "fr": "Attacher ou créer une session",
+      "hi": "सत्र से जुड़ें या नया बनाएं",
+      "ja": "セッションに接続 / 新規作成",
+      "ko": "세션 연결 또는 생성",
+      "pt": "Conectar ou criar sessão",
+      "ru": "Подключить или создать сессию",
+      "sr": "Повежи или креирај сесију",
+      "zh": "进入 / 恢复会话"
+     }
+    },
+    {
+     "name": "toolbar_tmux_detach",
+     "en": "Detach session (background)",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "فصل الجلسة (في الخلفية)",
+      "bn": "সেশন বিচ্ছিন্ন করুন (পটভূমি)",
+      "de": "Sitzung trennen (Hintergrund)",
+      "es": "Separar sesión (segundo plano)",
+      "fr": "Détacher la session (arrière-plan)",
+      "hi": "सत्र अलग करें (पृष्ठभूमि)",
+      "ja": "セッションから離脱 (バックグラウンド)",
+      "ko": "세션 분리 (백그라운드)",
+      "pt": "Desconectar sessão (segundo plano)",
+      "ru": "Отключить сессию (фоновый режим)",
+      "sr": "Откачи сесију (позадина)",
+      "zh": "后台挂起 / 脱离会话"
+     }
+    },
+    {
+     "name": "toolbar_tmux_kill_session",
+     "en": "Kill entire session",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "إنهاء الجلسة بالكامل",
+      "bn": "সম্পূর্ণ সেশন সমাপ্ত করুন",
+      "de": "Gesamte Sitzung beenden",
+      "es": "Cerrar sesión completa",
+      "fr": "Terminer toute la session",
+      "hi": "पूरा सत्र समाप्त करें",
+      "ja": "セッションを完全に終了",
+      "ko": "전체 세션 종료",
+      "pt": "Encerrar sessão completa",
+      "ru": "Завершить всю сессию",
+      "sr": "Прекини целу сесију",
+      "zh": "彻底销毁会话"
+     }
+    },
+    {
+     "name": "toolbar_tmux_kill_confirm_title",
+     "en": "Kill TMUX session?",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "إنهاء جلسة TMUX؟",
+      "bn": "TMUX সেশন সমাপ্ত করবেন?",
+      "de": "TMUX-Sitzung beenden?",
+      "es": "¿Cerrar sesión TMUX?",
+      "fr": "Terminer la session TMUX ?",
+      "hi": "TMUX सत्र समाप्त करें?",
+      "ja": "TMUX セッションを終了しますか？",
+      "ko": "TMUX 세션을 종료하시겠습니까?",
+      "pt": "Encerrar sessão TMUX?",
+      "ru": "Завершить сессию TMUX?",
+      "sr": "Прекинути TMUX сесију?",
+      "zh": "关闭 TMUX 会话？"
+     }
+    },
+    {
+     "name": "toolbar_tmux_kill_confirm_message",
+     "en": "This will terminate the entire TMUX session and all running processes inside it. Are you sure?",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "سيؤدي هذا إلى إنهاء جلسة TMUX بالكامل وجميع العمليات بداخلها. هل أنت متأكد؟",
+      "bn": "এটি সম্পূর্ণ TMUX সেশন এবং চলমান প্রক্রিয়াগুলি বন্ধ করবে। আপনি কি নিশ্চিত?",
+      "de": "Dies beendet die gesamte TMUX-Sitzung und alle darin laufenden Prozesse. Fortfahren?",
+      "es": "Esto finalizará toda la sesión de TMUX y todos sus procesos. ¿Estás seguro?",
+      "fr": "Cela mettra fin à toute la session TMUX et à ses processus. Confirmer ?",
+      "hi": "यह संपूर्ण TMUX सत्र और प्रक्रियाओं को समाप्त कर देगा। क्या आप सुनिश्चित हैं?",
+      "ja": "TMUX セッションと実行中のすべてのプロセスが終了します。よろしいですか？",
+      "ko": "TMUX 세션 및 실행 중인 모든 프로세스가 종료됩니다. 계속하시겠습니까?",
+      "pt": "Isso encerrará toda a sessão TMUX e os processos em execução. Tem certeza?",
+      "ru": "Это завершит всю сессию TMUX и все запущенные в ней процессы. Вы уверены?",
+      "sr": "Ово ће прекинути целу TMUX сесију и све процесе у њој. Да ли сте сигурни?",
+      "zh": "这将终止当前 TMUX 会话及其内部所有正在运行的进程，确定要销毁吗？"
+     }
+    },
+    {
+     "name": "toolbar_tmux_kill_confirm_button",
+     "en": "Kill session",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "إنهاء الجلسة",
+      "bn": "সেশন বন্ধ করুন",
+      "de": "Sitzung beenden",
+      "es": "Cerrar sesión",
+      "fr": "Terminer la session",
+      "hi": "सत्र समाप्त करें",
+      "ja": "セッション終了",
+      "ko": "세션 종료",
+      "pt": "Encerrar sessão",
+      "ru": "Завершить",
+      "sr": "Прекини сесију",
+      "zh": "销毁会话"
+     }
+    },
+    {
+     "name": "toolbar_tmux_new_window",
+     "en": "New window",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "نافذة جديدة",
+      "bn": "নতুন উইন্ডো",
+      "de": "Neues Fenster",
+      "es": "Nueva ventana",
+      "fr": "Nouvelle fenêtre",
+      "hi": "नई विंडो",
+      "ja": "新規ウィンドウ",
+      "ko": "새 창",
+      "pt": "Nova janela",
+      "ru": "Новое окно",
+      "sr": "Нови прозор",
+      "zh": "新建窗口"
+     }
+    },
+    {
+     "name": "toolbar_tmux_switch_window",
+     "en": "Choose window / list",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "اختيار نافذة / قائمة",
+      "bn": "উইন্ডো নির্বাচন / তালিকা",
+      "de": "Fenster auswählen / Liste",
+      "es": "Seleccionar ventana / lista",
+      "fr": "Choisir une fenêtre / liste",
+      "hi": "विंडो चुनें / सूची",
+      "ja": "ウィンドウ選択 / 一覧",
+      "ko": "창 선택 / 목록",
+      "pt": "Escolher janela / lista",
+      "ru": "Выбрать окно / список",
+      "sr": "Изабери прозор / листа",
+      "zh": "切换 / 选择窗口"
+     }
+    },
+    {
+     "name": "toolbar_tmux_close_window",
+     "en": "Close current window",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "إغلاق النافذة الحالية",
+      "bn": "বর্তমান উইন্ডো বন্ধ করুন",
+      "de": "Aktuelles Fenster schließen",
+      "es": "Cerrar ventana actual",
+      "fr": "Fermer la fenêtre actuelle",
+      "hi": "वर्तमान विंडो बंद करें",
+      "ja": "現在のウィンドウを閉じる",
+      "ko": "현재 창 닫기",
+      "pt": "Fechar janela atual",
+      "ru": "Закрыть текущее окно",
+      "sr": "Затвори тренутни прозор",
+      "zh": "关闭当前窗口"
+     }
+    },
+    {
+     "name": "toolbar_tmux_split_horizontal",
+     "en": "Split horizontal",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "تقسيم أفقي",
+      "bn": "অনুভূমিক বিভাজন",
+      "de": "Horizontal teilen",
+      "es": "Dividir horizontalmente",
+      "fr": "Scinder horizontalement",
+      "hi": "क्षैतिज विभाजन",
+      "ja": "上下に分割",
+      "ko": "가로 분할",
+      "pt": "Dividir horizontalmente",
+      "ru": "Разделить по горизонтали",
+      "sr": "Подели хоризонтално",
+      "zh": "水平分屏 (上下)"
+     }
+    },
+    {
+     "name": "toolbar_tmux_split_vertical",
+     "en": "Split vertical",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "تقسيم رأسي",
+      "bn": "উল্লম্ব বিভাজন",
+      "de": "Vertikal teilen",
+      "es": "Dividir verticalmente",
+      "fr": "Scinder verticalement",
+      "hi": "लंबवत विभाजन",
+      "ja": "左右に分割",
+      "ko": "세로 분할",
+      "pt": "Dividir verticalmente",
+      "ru": "Разделить по вертикали",
+      "sr": "Подели вертикално",
+      "zh": "垂直分屏 (左右)"
+     }
+    },
+    {
+     "name": "toolbar_tmux_zoom_pane",
+     "en": "Zoom / restore pane",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "تكبير / استعادة الجزء",
+      "bn": "জুম / প্যান পুনরুদ্ধার",
+      "de": "Bereich vergrößern / wiederherstellen",
+      "es": "Maximizar / restaurar panel",
+      "fr": "Agrandir / restaurer le panneau",
+      "hi": "ज़ूम / फलक पुनर्स्थापित करें",
+      "ja": "ペインの最大化 / 復元",
+      "ko": "창 확대 / 복원",
+      "pt": "Ampliar / restaurar painel",
+      "ru": "Увеличить / восстановить панель",
+      "sr": "Увећај / врати панел",
+      "zh": "最大化 / 恢复窗格"
+     }
+    },
+    {
+     "name": "toolbar_tmux_attach_session_sub",
+     "en": "tmux new -A -s main",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "tmux new -A -s main",
+      "bn": "tmux new -A -s main",
+      "de": "tmux new -A -s main",
+      "es": "tmux new -A -s main",
+      "fr": "tmux new -A -s main",
+      "hi": "tmux new -A -s main",
+      "ja": "tmux new -A -s main",
+      "ko": "tmux new -A -s main",
+      "pt": "tmux new -A -s main",
+      "ru": "tmux new -A -s main",
+      "sr": "tmux new -A -s main",
+      "zh": "tmux new -A -s main"
+     }
+    },
+    {
+     "name": "toolbar_tmux_detach_sub",
+     "en": "Ctrl+B d",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "Ctrl+B d",
+      "bn": "Ctrl+B d",
+      "de": "Ctrl+B d",
+      "es": "Ctrl+B d",
+      "fr": "Ctrl+B d",
+      "hi": "Ctrl+B d",
+      "ja": "Ctrl+B d",
+      "ko": "Ctrl+B d",
+      "pt": "Ctrl+B d",
+      "ru": "Ctrl+B d",
+      "sr": "Ctrl+B d",
+      "zh": "Ctrl+B d"
+     }
+    },
+    {
+     "name": "toolbar_tmux_kill_session_sub",
+     "en": "tmux kill-session",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "tmux kill-session",
+      "bn": "tmux kill-session",
+      "de": "tmux kill-session",
+      "es": "tmux kill-session",
+      "fr": "tmux kill-session",
+      "hi": "tmux kill-session",
+      "ja": "tmux kill-session",
+      "ko": "tmux kill-session",
+      "pt": "tmux kill-session",
+      "ru": "tmux kill-session",
+      "sr": "tmux kill-session",
+      "zh": "tmux kill-session"
+     }
+    },
+    {
+     "name": "toolbar_tmux_new_window_sub",
+     "en": "Ctrl+B c",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "Ctrl+B c",
+      "bn": "Ctrl+B c",
+      "de": "Ctrl+B c",
+      "es": "Ctrl+B c",
+      "fr": "Ctrl+B c",
+      "hi": "Ctrl+B c",
+      "ja": "Ctrl+B c",
+      "ko": "Ctrl+B c",
+      "pt": "Ctrl+B c",
+      "ru": "Ctrl+B c",
+      "sr": "Ctrl+B c",
+      "zh": "Ctrl+B c"
+     }
+    },
+    {
+     "name": "toolbar_tmux_switch_window_sub",
+     "en": "Ctrl+B w",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "Ctrl+B w",
+      "bn": "Ctrl+B w",
+      "de": "Ctrl+B w",
+      "es": "Ctrl+B w",
+      "fr": "Ctrl+B w",
+      "hi": "Ctrl+B w",
+      "ja": "Ctrl+B w",
+      "ko": "Ctrl+B w",
+      "pt": "Ctrl+B w",
+      "ru": "Ctrl+B w",
+      "sr": "Ctrl+B w",
+      "zh": "Ctrl+B w"
+     }
+    },
+    {
+     "name": "toolbar_tmux_close_window_sub",
+     "en": "exit",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "exit",
+      "bn": "exit",
+      "de": "exit",
+      "es": "exit",
+      "fr": "exit",
+      "hi": "exit",
+      "ja": "exit",
+      "ko": "exit",
+      "pt": "exit",
+      "ru": "exit",
+      "sr": "exit",
+      "zh": "exit"
+     }
+    },
+    {
+     "name": "toolbar_tmux_split_horizontal_sub",
+     "en": "Ctrl+B \\\"",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "Ctrl+B \\\"",
+      "bn": "Ctrl+B \\\"",
+      "de": "Ctrl+B \\\"",
+      "es": "Ctrl+B \\\"",
+      "fr": "Ctrl+B \\\"",
+      "hi": "Ctrl+B \\\"",
+      "ja": "Ctrl+B \\\"",
+      "ko": "Ctrl+B \\\"",
+      "pt": "Ctrl+B \\\"",
+      "ru": "Ctrl+B \\\"",
+      "sr": "Ctrl+B \\\"",
+      "zh": "Ctrl+B \\\""
+     }
+    },
+    {
+     "name": "toolbar_tmux_split_vertical_sub",
+     "en": "Ctrl+B %",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "Ctrl+B %",
+      "bn": "Ctrl+B %",
+      "de": "Ctrl+B %",
+      "es": "Ctrl+B %",
+      "fr": "Ctrl+B %",
+      "hi": "Ctrl+B %",
+      "ja": "Ctrl+B %",
+      "ko": "Ctrl+B %",
+      "pt": "Ctrl+B %",
+      "ru": "Ctrl+B %",
+      "sr": "Ctrl+B %",
+      "zh": "Ctrl+B %"
+     }
+    },
+    {
+     "name": "toolbar_tmux_zoom_pane_sub",
+     "en": "Ctrl+B z",
+     "comment": "Strings added for issue #210 localisation",
+     "args": [],
+     "t": {
+      "ar": "Ctrl+B z",
+      "bn": "Ctrl+B z",
+      "de": "Ctrl+B z",
+      "es": "Ctrl+B z",
+      "fr": "Ctrl+B z",
+      "hi": "Ctrl+B z",
+      "ja": "Ctrl+B z",
+      "ko": "Ctrl+B z",
+      "pt": "Ctrl+B z",
+      "ru": "Ctrl+B z",
+      "sr": "Ctrl+B z",
+      "zh": "Ctrl+B z"
+     }
     }
    ]
   },
@@ -35278,6 +35838,46 @@
       "ru": "Отмена",
       "sr": "Откажи",
       "zh": "取消"
+     }
+    },
+    {
+     "name": "settings_terminal_immersive_fullscreen_title",
+     "en": "Terminal immersive fullscreen",
+     "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
+     "args": [],
+     "t": {
+      "ar": "ملء الشاشة الغامر في الطرفية",
+      "bn": "টার্মিনাল নিমগ্ন পূর্ণস্ক্রিন",
+      "de": "Immersiver Vollbildmodus im Terminal",
+      "es": "Pantalla completa inmersiva en terminal",
+      "fr": "Plein écran immersif dans le terminal",
+      "hi": "टर्मिनल इमर्सिव फ़ुलस्क्रीन",
+      "ja": "ターミナルの没入型全画面",
+      "ko": "터미널 몰입형 전체 화면",
+      "pt": "Tela cheia imersiva no terminal",
+      "ru": "Полноэкранный режим терминала",
+      "sr": "Имерзивни пун екран терминала",
+      "zh": "终端沉浸式全屏"
+     }
+    },
+    {
+     "name": "settings_terminal_immersive_fullscreen_subtitle",
+     "en": "Automatically hide Android status bar and navigation bar when entering the terminal",
+     "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
+     "args": [],
+     "t": {
+      "ar": "إخفاء شريط الحالة وشريط التنقل لنظام Android تلقائيًا عند دخول الطرفية",
+      "bn": "টার্মিনালে প্রবেশের সময় স্বয়ংক্রিয়ভাবে অ্যান্ড্রয়েড স্ট্যাটাস বার এবং নেভিগেশন বার লুকান",
+      "de": "Android-Statusleiste und Navigationsleiste beim Öffnen des Terminals automatisch ausblenden",
+      "es": "Ocultar automáticamente la barra de estado y de navegación de Android al entrar a la terminal",
+      "fr": "Masquer automatiquement la barre d\\'état et la barre de navigation Android lors de l\\'ouverture du terminal",
+      "hi": "टर्मिनल में प्रवेश करते समय एंड्रॉइड स्टेटस बार और नेविगेशन बार को स्वचालित रूप से छिपाएं",
+      "ja": "ターミナルに入ったときに Android のステータスバーとナビゲーションバーを自動的に非表示にします",
+      "ko": "터미널 시작 시 Android 상태 표시줄 및 내비게이션 바 자동 숨기기",
+      "pt": "Ocultar automaticamente a barra de status e de navegação do Android ao entrar no terminal",
+      "ru": "Автоматически скрывать строку состояния и панель навигации Android при входе в терминал",
+      "sr": "Аутоматски сакриј Андроид статусну и навигациону траку при уласку у терминал",
+      "zh": "进入终端时自动隐藏 Android 状态栏和底部导航栏"
      }
     }
    ]

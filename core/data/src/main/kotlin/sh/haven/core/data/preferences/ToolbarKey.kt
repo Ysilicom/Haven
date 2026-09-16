@@ -22,6 +22,8 @@ enum class ToolbarKey(val id: String, val label: String, val isModifier: Boolean
     VOICE_INPUT("voice_input", "Dictate", isAction = true),
     RAW_KEYBOARD("raw_kb", "Raw", isAction = true),
     COMPOSE("compose_kb", "Compose", isAction = true),
+    FULLSCREEN("fullscreen", "Full", isAction = true),
+    TMUX("tmux", "TMUX", isAction = true),
     SHIFT("shift", "Shift", isModifier = true),
     CTRL("ctrl", "Ctrl", isModifier = true),
     ALT("alt", "Alt", isModifier = true),
@@ -103,7 +105,7 @@ enum class ToolbarKey(val id: String, val label: String, val isModifier: Boolean
 
         /** Default row 1: keyboard toggle, function keys, nav block top. */
         val DEFAULT_ROW1 = listOf(
-            SNIPPETS, KEYBOARD, ATTACH, ESC_KEY, TAB_KEY, PASTE, TEXT_INPUT, SYM_SLASH, HOME, ARROW_UP, END, PGUP,
+            FULLSCREEN, TMUX, SNIPPETS, KEYBOARD, ATTACH, ESC_KEY, TAB_KEY, PASTE, TEXT_INPUT, SYM_SLASH, HOME, ARROW_UP, END, PGUP,
         )
 
         /** Default row 2: modifiers, nav block bottom, symbols. The

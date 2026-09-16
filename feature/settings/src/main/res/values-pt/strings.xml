@@ -495,4 +495,6 @@
     <string name="settings_update_check_up_to_date">Atualizado na %1$s</string>
     <string name="settings_update_check_failed">Falha na verificação: %1$s</string>
     <string name="settings_update_check_other_channel">Esta cópia não foi instalada a partir de uma versão do GitHub, então baixar a versão não pode substituí-la. Atualize por onde você instalou o Haven.</string>
+    <string name="settings_terminal_immersive_fullscreen_title">Tela cheia imersiva no terminal</string>
+    <string name="settings_terminal_immersive_fullscreen_subtitle">Ocultar automaticamente a barra de status e de navegação do Android ao entrar no terminal</string>
 </resources>
