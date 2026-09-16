@@ -1,7 +1,9 @@
 package sh.haven.core.toolbar
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,20 +12,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddBox
-import androidx.compose.material.icons.filled.AspectRatio
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Splitscreen
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.VerticalSplit
-import androidx.compose.material.icons.filled.ViewStream
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -49,13 +51,35 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+/**
+ * Mobile-optimised TMUX session manager bottom sheet.
+ *
+ * Enforces scenario constraints (Scheme 1: Disabled + status explanation):
+ * - Outside TMUX (plain shell):
+ *   - "New Session" (custom name) is ENABLED
+ *   - "Attach Session" (specify name) is ENABLED
+ *   - "Detach" & "Kill" are DISABLED with a clear reason ("Not in session")
+ * - Inside TMUX:
+ *   - "Detach" (Ctrl+B d) is ENABLED
+ *   - "Kill Session" (with confirmation) is ENABLED
+ *   - "New" & "Attach" are DISABLED with a clear reason ("Already in session")
+ *
+ * Includes a status pill in the header to indicate and manually toggle current
+ * perceived state, ensuring zero-risk operation across all scenarios.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TmuxQuickBottomSheet(
     onDismiss: () -> Unit,
     onSendBytes: (ByteArray) -> Unit,
+    initialInTmux: Boolean = false,
+    onInTmuxChanged: ((Boolean) -> Unit)? = null,
 ) {
+    var inTmux by remember { mutableStateOf(initialInTmux) }
+    var showNewDialog by remember { mutableStateOf(false) }
+    var showAttachDialog by remember { mutableStateOf(false) }
     var showKillConfirmDialog by remember { mutableStateOf(false) }
+    var sessionNameInput by remember { mutableStateOf("main") }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -68,7 +92,7 @@ fun TmuxQuickBottomSheet(
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            // Header
+            // Header with Title and Interactive State Pill
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
@@ -84,10 +108,59 @@ fun TmuxQuickBottomSheet(
                 Text(
                     text = stringResource(R.string.toolbar_tmux_title),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp),
+                    modifier = Modifier.weight(1f),
                 )
+
+                // State Pill: Shows whether the app perceives itself inside or outside tmux.
+                // Clicking toggles state for manual override/correction.
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (inTmux) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                    },
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .clickable {
+                            val next = !inTmux
+                            inTmux = next
+                            onInTmuxChanged?.invoke(next)
+                        },
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(
+                                    color = if (inTmux) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.outline
+                                    },
+                                    shape = CircleShape,
+                                ),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (inTmux) {
+                                stringResource(R.string.toolbar_tmux_state_inside)
+                            } else {
+                                stringResource(R.string.toolbar_tmux_state_outside)
+                            },
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = if (inTmux) {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
+                }
+
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Filled.Close,
@@ -96,114 +169,80 @@ fun TmuxQuickBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Section 1: Session Management
-            TmuxSectionHeader(title = stringResource(R.string.toolbar_tmux_section_session))
-
-            TmuxActionItem(
-                icon = Icons.Filled.PlayArrow,
-                title = stringResource(R.string.toolbar_tmux_attach_session),
-                shortcut = stringResource(R.string.toolbar_tmux_attach_session_sub),
+            // Action 1: New Session (custom name)
+            TmuxConstrainedActionItem(
+                icon = Icons.Filled.Add,
+                title = stringResource(R.string.toolbar_tmux_new_session),
+                subtitle = if (!inTmux) {
+                    stringResource(R.string.toolbar_tmux_new_session_sub)
+                } else {
+                    stringResource(R.string.toolbar_tmux_disabled_in_session)
+                },
+                badge = "tmux new -s",
+                enabled = !inTmux,
                 onClick = {
-                    onSendBytes("tmux new -A -s main\n".toByteArray(Charsets.UTF_8))
-                    onDismiss()
+                    sessionNameInput = "main"
+                    showNewDialog = true
                 },
             )
 
-            TmuxActionItem(
+            // Action 2: Attach Specified Session
+            TmuxConstrainedActionItem(
+                icon = Icons.AutoMirrored.Filled.ArrowForward,
+                title = stringResource(R.string.toolbar_tmux_attach_session_named),
+                subtitle = if (!inTmux) {
+                    stringResource(R.string.toolbar_tmux_attach_session_named_sub)
+                } else {
+                    stringResource(R.string.toolbar_tmux_disabled_in_session)
+                },
+                badge = "tmux a -t",
+                enabled = !inTmux,
+                onClick = {
+                    sessionNameInput = "main"
+                    showAttachDialog = true
+                },
+            )
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            )
+
+            // Action 3: Detach Session (Background)
+            TmuxConstrainedActionItem(
                 icon = Icons.Filled.ExitToApp,
-                title = stringResource(R.string.toolbar_tmux_detach),
-                shortcut = stringResource(R.string.toolbar_tmux_detach_sub),
+                title = stringResource(R.string.toolbar_tmux_detach_named),
+                subtitle = if (inTmux) {
+                    stringResource(R.string.toolbar_tmux_detach_named_sub)
+                } else {
+                    stringResource(R.string.toolbar_tmux_disabled_outside)
+                },
+                badge = "Ctrl+B d",
+                enabled = inTmux,
                 onClick = {
                     onSendBytes(byteArrayOf(0x02, 'd'.code.toByte()))
+                    inTmux = false
+                    onInTmuxChanged?.invoke(false)
                     onDismiss()
                 },
             )
 
-            TmuxActionItem(
+            // Action 4: Kill Session
+            TmuxConstrainedActionItem(
                 icon = Icons.Filled.DeleteForever,
-                title = stringResource(R.string.toolbar_tmux_kill_session),
-                shortcut = stringResource(R.string.toolbar_tmux_kill_session_sub),
+                title = stringResource(R.string.toolbar_tmux_kill_session_named),
+                subtitle = if (inTmux) {
+                    stringResource(R.string.toolbar_tmux_kill_session_named_sub)
+                } else {
+                    stringResource(R.string.toolbar_tmux_disabled_outside)
+                },
+                badge = "kill-session",
+                enabled = inTmux,
                 isDanger = true,
                 onClick = {
                     showKillConfirmDialog = true
-                },
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 8.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            )
-
-            // Section 2: Window Management
-            TmuxSectionHeader(title = stringResource(R.string.toolbar_tmux_section_window))
-
-            TmuxActionItem(
-                icon = Icons.Filled.AddBox,
-                title = stringResource(R.string.toolbar_tmux_new_window),
-                shortcut = stringResource(R.string.toolbar_tmux_new_window_sub),
-                onClick = {
-                    onSendBytes(byteArrayOf(0x02, 'c'.code.toByte()))
-                    onDismiss()
-                },
-            )
-
-            TmuxActionItem(
-                icon = Icons.Filled.ViewStream,
-                title = stringResource(R.string.toolbar_tmux_switch_window),
-                shortcut = stringResource(R.string.toolbar_tmux_switch_window_sub),
-                onClick = {
-                    onSendBytes(byteArrayOf(0x02, 'w'.code.toByte()))
-                    onDismiss()
-                },
-            )
-
-            TmuxActionItem(
-                icon = Icons.Filled.Close,
-                title = stringResource(R.string.toolbar_tmux_close_window),
-                shortcut = stringResource(R.string.toolbar_tmux_close_window_sub),
-                onClick = {
-                    onSendBytes("exit\n".toByteArray(Charsets.UTF_8))
-                    onDismiss()
-                },
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 8.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            )
-
-            // Section 3: Panes & Layout
-            TmuxSectionHeader(title = stringResource(R.string.toolbar_tmux_section_pane))
-
-            TmuxActionItem(
-                icon = Icons.Filled.Splitscreen,
-                title = stringResource(R.string.toolbar_tmux_split_horizontal),
-                shortcut = stringResource(R.string.toolbar_tmux_split_horizontal_sub),
-                onClick = {
-                    onSendBytes(byteArrayOf(0x02, '"'.code.toByte()))
-                    onDismiss()
-                },
-            )
-
-            TmuxActionItem(
-                icon = Icons.Filled.VerticalSplit,
-                title = stringResource(R.string.toolbar_tmux_split_vertical),
-                shortcut = stringResource(R.string.toolbar_tmux_split_vertical_sub),
-                onClick = {
-                    onSendBytes(byteArrayOf(0x02, '%'.code.toByte()))
-                    onDismiss()
-                },
-            )
-
-            TmuxActionItem(
-                icon = Icons.Filled.AspectRatio,
-                title = stringResource(R.string.toolbar_tmux_zoom_pane),
-                shortcut = stringResource(R.string.toolbar_tmux_zoom_pane_sub),
-                onClick = {
-                    onSendBytes(byteArrayOf(0x02, 'z'.code.toByte()))
-                    onDismiss()
                 },
             )
 
@@ -211,6 +250,103 @@ fun TmuxQuickBottomSheet(
         }
     }
 
+    // Dialog 1: New Named Session
+    if (showNewDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewDialog = false },
+            title = { Text(text = stringResource(R.string.toolbar_tmux_dialog_new_title)) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = sessionNameInput,
+                        onValueChange = { input ->
+                            sessionNameInput = input.filter { c -> c.isLetterOrDigit() || c == '-' || c == '_' }
+                        },
+                        label = { Text(stringResource(R.string.toolbar_tmux_dialog_name_label)) },
+                        placeholder = { Text("main") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val name = sessionNameInput.trim().ifEmpty { "main" }
+                        onSendBytes("tmux new -A -s $name\n".toByteArray(Charsets.UTF_8))
+                        inTmux = true
+                        onInTmuxChanged?.invoke(true)
+                        showNewDialog = false
+                        onDismiss()
+                    },
+                ) {
+                    Text(text = stringResource(R.string.toolbar_tmux_dialog_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNewDialog = false }) {
+                    Text(text = stringResource(R.string.toolbar_tmux_cancel))
+                }
+            },
+        )
+    }
+
+    // Dialog 2: Attach Specified Session
+    if (showAttachDialog) {
+        AlertDialog(
+            onDismissRequest = { showAttachDialog = false },
+            title = { Text(text = stringResource(R.string.toolbar_tmux_dialog_attach_title)) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = sessionNameInput,
+                        onValueChange = { input ->
+                            sessionNameInput = input.filter { c -> c.isLetterOrDigit() || c == '-' || c == '_' }
+                        },
+                        label = { Text(stringResource(R.string.toolbar_tmux_dialog_name_label)) },
+                        placeholder = { Text("main") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = {
+                            onSendBytes("tmux ls\n".toByteArray(Charsets.UTF_8))
+                            showAttachDialog = false
+                            onDismiss()
+                        },
+                        modifier = Modifier.align(Alignment.Start),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.toolbar_tmux_dialog_list_sessions),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val name = sessionNameInput.trim().ifEmpty { "main" }
+                        onSendBytes("tmux attach -t $name\n".toByteArray(Charsets.UTF_8))
+                        inTmux = true
+                        onInTmuxChanged?.invoke(true)
+                        showAttachDialog = false
+                        onDismiss()
+                    },
+                ) {
+                    Text(text = stringResource(R.string.toolbar_tmux_dialog_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAttachDialog = false }) {
+                    Text(text = stringResource(R.string.toolbar_tmux_cancel))
+                }
+            },
+        )
+    }
+
+    // Dialog 3: Kill Session Confirm Dialog
     if (showKillConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showKillConfirmDialog = false },
@@ -228,6 +364,8 @@ fun TmuxQuickBottomSheet(
                     onClick = {
                         showKillConfirmDialog = false
                         onSendBytes("tmux kill-session\n".toByteArray(Charsets.UTF_8))
+                        inTmux = false
+                        onInTmuxChanged?.invoke(false)
                         onDismiss()
                     },
                 ) {
@@ -247,63 +385,83 @@ fun TmuxQuickBottomSheet(
 }
 
 @Composable
-private fun TmuxSectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 4.dp),
-    )
-}
-
-@Composable
-private fun TmuxActionItem(
+private fun TmuxConstrainedActionItem(
     icon: ImageVector,
     title: String,
-    shortcut: String,
+    subtitle: String,
+    badge: String,
+    enabled: Boolean,
     isDanger: Boolean = false,
     onClick: () -> Unit,
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
-            .clickable(onClick = onClick),
+            .padding(vertical = 3.dp)
+            .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
-        color = if (isDanger) {
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
-        } else {
-            MaterialTheme.colorScheme.surface
+        color = when {
+            !enabled -> MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+            isDanger -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f)
+            else -> MaterialTheme.colorScheme.surface
         },
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isDanger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
+                tint = when {
+                    !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    isDanger -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.primary
+                },
+                modifier = Modifier.size(22.dp),
             )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium,
-                    color = if (isDanger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                ),
+
+            Column(
                 modifier = Modifier.weight(1f),
-            )
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.padding(start = 4.dp),
             ) {
                 Text(
-                    text = shortcut,
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = when {
+                            !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            isDanger -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                    ),
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = if (!enabled) {
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    ),
+                )
+            }
+
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.surfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                },
+                modifier = Modifier.alpha(if (enabled) 1f else 0.4f),
+            ) {
+                Text(
+                    text = badge,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp,
