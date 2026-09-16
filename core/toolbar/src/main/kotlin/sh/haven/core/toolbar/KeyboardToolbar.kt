@@ -1091,7 +1091,6 @@ private fun BuiltInKey(
         )
         ToolbarKey.TMUX -> {
             var showTmuxSheet by remember { mutableStateOf(false) }
-            var inTmux by remember { mutableStateOf(false) }
             ToolbarTextButton("TMUX") { showTmuxSheet = true }
             if (showTmuxSheet) {
                 TmuxQuickBottomSheet(
@@ -1100,8 +1099,6 @@ private fun BuiltInKey(
                         cb.onSendBytes(bytes)
                         showTmuxSheet = false
                     },
-                    initialInTmux = inTmux,
-                    onInTmuxChanged = { inTmux = it },
                 )
             }
         }
