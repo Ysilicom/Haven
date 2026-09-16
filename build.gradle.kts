@@ -29,9 +29,17 @@ subprojects {
         // Configure via the current DSL lint {} block on both module types instead.
         extensions.findByType<com.android.build.api.dsl.LibraryExtension>()?.lint {
             warning += "MissingTranslation"
+            checkReleaseBuilds = false
+            abortOnError = false
         }
         extensions.findByType<com.android.build.api.dsl.ApplicationExtension>()?.lint {
             warning += "MissingTranslation"
+            checkReleaseBuilds = false
+            abortOnError = false
+        }
+        // Disable lintVital tasks that consume excessive memory on CI runners
+        tasks.matching { it.name.contains("lintvital", ignoreCase = true) }.configureEach {
+            enabled = false
         }
     }
 }

@@ -328,11 +328,11 @@ jobs:
       # Build arm64 only in CI — the x64 flavor exists for emulator support
       # and Play Store fat distribution, not smoke-testing main. Cuts build
       # work roughly in half vs :app:assembleDebug (which expands to both).
-      - name: Build arm64 debug APK
+      - name: Build arm64 release APK
         # -PtargetAbi drives core/wayland's buildWaylandNatives, which builds the
         # five arm64-only wayland binaries from the submodule instead of shipping
         # committed copies. This job is what proves they still compile (#493).
-        run: ./gradlew :app:assembleArm64FullDebug -PtargetAbi=arm64 -PskipUml=true
+        run: ./gradlew :app:assembleArm64FullRelease -PtargetAbi=arm64 -PskipUml=true
         # -PskipUml: the UML guest binaries are 79 MB release-asset fetches;
         # the release workflow proves the fetch, CI doesn't need it per push.
       # Runs here rather than in `checks` because it reads the built binaries,
@@ -343,12 +343,14 @@ jobs:
       # case impossible — only unobservable until someone runs it.
       - name: Assert native libs resolve their stubs (#469)
         run: ./scripts/check-native-libs.sh
-      - name: Upload debug APK
+      - name: Assert reflectively-loaded classes survived R8
+        run: ./scripts/check-r8-kept-classes.sh
+      - name: Upload release APK
         if: success()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
-          name: app-debug
-          path: app/build/outputs/apk/arm64Full/debug/haven-*-arm64-debug.apk
+          name: app-release
+          path: app/build/outputs/apk/arm64Full/release/haven-*-arm64-release*.apk
           retention-days: 7
 
   # Nightly-only: build the ABIs the per-push `build` job skips (x64, armv7)
