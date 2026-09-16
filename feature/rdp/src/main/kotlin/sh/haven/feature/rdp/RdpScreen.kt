@@ -120,6 +120,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.activity.compose.BackHandler
 import sh.haven.core.ui.findActivity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -187,6 +188,11 @@ fun RdpSessionContent(
     chipAnchor: sh.haven.core.data.preferences.RdpChipAnchor =
         sh.haven.core.data.preferences.RdpChipAnchor.DEFAULT,
     onChipAnchorChange: (sh.haven.core.data.preferences.RdpChipAnchor) -> Unit = {},
+    /**
+     * App-window or parent host: when non-null, fullscreen is host-controlled.
+     * [onFullscreenChanged] is then the toggle-request channel back to the host.
+     */
+    fullscreenOverride: Boolean? = null,
 ) {
     val connectedState by connected.collectAsState()
     val frameState by frame.collectAsState()
@@ -194,11 +200,21 @@ fun RdpSessionContent(
     val pointerState = pointerPos?.collectAsState()?.value ?: (0 to 0)
     val cursorState = cursor?.collectAsState()?.value
 
-    var fullscreen by rememberSaveable { mutableStateOf(false) }
+    var localFullscreen by rememberSaveable { mutableStateOf(false) }
+    val fullscreen = fullscreenOverride ?: localFullscreen
     val view = LocalView.current
     val window = remember(view) { view.context.findActivity()?.window }
 
+    BackHandler(enabled = fullscreen) {
+        if (fullscreenOverride != null) {
+            onFullscreenChanged(false)
+        } else {
+            localFullscreen = false
+        }
+    }
+
     LaunchedEffect(fullscreen, window) {
+        if (fullscreenOverride != null) return@LaunchedEffect
         onFullscreenChanged(fullscreen)
         if (window != null) {
             val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -213,12 +229,12 @@ fun RdpSessionContent(
     }
 
     LaunchedEffect(connectedState) {
-        if (!connectedState && fullscreen) fullscreen = false
+        if (!connectedState && fullscreenOverride == null && localFullscreen) localFullscreen = false
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            if (fullscreen && window != null) {
+            if (fullscreenOverride == null && localFullscreen && window != null) {
                 val controller = WindowCompat.getInsetsController(window, window.decorView)
                 controller.show(WindowInsetsCompat.Type.systemBars())
                 onFullscreenChanged(false)
@@ -244,7 +260,14 @@ fun RdpSessionContent(
             onTypeChar = onTypeChar,
             onKeyDown = onKeyDown,
             onKeyUp = onKeyUp,
-            onToggleFullscreen = { fullscreen = !fullscreen },
+            onToggleFullscreen = {
+                if (fullscreenOverride != null) {
+                    onFullscreenChanged(!fullscreen)
+                } else {
+                    localFullscreen = !localFullscreen
+                    onFullscreenChanged(localFullscreen)
+                }
+            },
             onDisconnect = onDisconnect,
             cursor = cursorState,
             pointerPos = pointerState,

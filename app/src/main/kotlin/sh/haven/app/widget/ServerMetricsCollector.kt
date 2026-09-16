@@ -31,7 +31,7 @@ class ServerMetricsCollector @Inject constructor(
             "echo '===MEM==='; " +
             "grep -E '^(MemTotal|MemAvailable|MemFree|Buffers|Cached):' /proc/meminfo 2>/dev/null; " +
             "echo '===DISK==='; " +
-            "df -k / 2>/dev/null | tail -n 1; " +
+            "df -Pk / 2>/dev/null | tail -n 1; " +
             "echo '===LOAD==='; " +
             "cat /proc/loadavg 2>/dev/null; " +
             "echo '===UPTIME==='; " +

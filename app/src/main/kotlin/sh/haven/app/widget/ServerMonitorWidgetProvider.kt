@@ -178,6 +178,12 @@ class ServerMonitorWidgetProvider : AppWidgetProvider() {
                     )
                     val collector = entryPoint.metricsCollector()
                     val prefs = entryPoint.widgetPrefs()
+                    val widgetInfo = appWidgetManager.getAppWidgetInfo(appWidgetId)
+                    if (widgetInfo == null) {
+                        Log.d("ServerMonitorWidget", "Widget $appWidgetId no longer active, cleaning up config")
+                        prefs.removeWidgetConfig(appWidgetId)
+                        return@launch
+                    }
                     val profileId = prefs.getProfileId(appWidgetId)
                     if (profileId != null) {
                         val metrics = collector.collect(profileId)

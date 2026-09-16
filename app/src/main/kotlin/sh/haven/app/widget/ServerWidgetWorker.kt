@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import androidx.work.WorkManager
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +45,13 @@ class ServerWidgetWorker @AssistedInject constructor(
         }
 
         for (widgetId in targetIds) {
+            val widgetInfo = appWidgetManager.getAppWidgetInfo(widgetId)
+            if (widgetInfo == null) {
+                Log.d(TAG, "Widget $widgetId no longer active on launcher, cleaning up config")
+                widgetPrefs.removeWidgetConfig(widgetId)
+                continue
+            }
+
             val profileId = widgetPrefs.getProfileId(widgetId) ?: continue
             try {
                 val metrics = metricsCollector.collect(profileId)
@@ -60,6 +68,11 @@ class ServerWidgetWorker @AssistedInject constructor(
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to update widget $widgetId: ${e.message}")
             }
+        }
+
+        if (widgetPrefs.getAllConfiguredWidgetIds().isEmpty()) {
+            Log.d(TAG, "No configured server widgets remaining, cancelling periodic worker")
+            WorkManager.getInstance(appContext).cancelUniqueWork(UNIQUE_PERIODIC_WORK)
         }
 
         Result.success()
