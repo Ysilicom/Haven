@@ -325,16 +325,39 @@ jobs:
           submodules: false
       - uses: ./.github/actions/init-submodules-with-retry
       - uses: ./.github/actions/setup-toolchain
-      # Build arm64 only in CI — the x64 flavor exists for emulator support
-      # and Play Store fat distribution, not smoke-testing main. Cuts build
-      # work roughly in half vs :app:assembleDebug (which expands to both).
+      - name: Configure swap space
+        run: |
+          sudo fallocate -l 6G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=6144
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -m
+
       - name: Build arm64 release APK
-        # -PtargetAbi drives core/wayland's buildWaylandNatives, which builds the
-        # five arm64-only wayland binaries from the submodule instead of shipping
-        # committed copies. This job is what proves they still compile (#493).
-        run: ./gradlew :app:assembleArm64FullRelease -PtargetAbi=arm64 -PskipUml=true
-        # -PskipUml: the UML guest binaries are 79 MB release-asset fetches;
-        # the release workflow proves the fetch, CI doesn't need it per push.
+        # Two-phase build: compile Kotlin/Java first, then restart Gradle and kill Kotlin daemon
+        # so R8 starts with a fresh, unfragmented heap, avoiding runner OOM deaths (#587.36).
+        run: |
+          ( while true; do
+              echo "MEMSAMPLE $(date -u +%H:%M:%S) $(free -m | awk '/^Mem:/{print "used="$3"M avail="$7"M"} /^Swap:/{print "swap_used="$3"M swap_avail="$4"M"}')"
+              sleep 30
+            done ) &
+          MEMSAMPLER=$!
+
+          # Phase 1: Compile Kotlin and Java code into the build cache
+          ./gradlew :app:compileArm64FullReleaseKotlin \
+            :app:compileArm64FullReleaseJavaWithJavac \
+            -PtargetAbi=arm64 -PskipUml=true
+
+          # Free accumulated JVM heap and kill Kotlin daemon so R8 gets a clean, full heap
+          ./gradlew --stop
+          pkill -f KotlinCompileDaemon || true
+          sleep 5
+
+          # Phase 2: R8 minification, native linking and packaging from clean daemons
+          ./gradlew :app:assembleArm64FullRelease \
+            -PtargetAbi=arm64 -PskipUml=true
+
+          kill "$MEMSAMPLER" 2>/dev/null || true
       # Runs here rather than in `checks` because it reads the built binaries,
       # and nothing builds them there. #469 was a wayland library linked without
       # gen-stubs.sh's weak stubs: 51 undefined symbols, dlopen refused it, and
