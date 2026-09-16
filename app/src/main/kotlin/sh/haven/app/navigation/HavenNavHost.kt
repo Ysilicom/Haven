@@ -530,19 +530,24 @@ fun HavenNavHost(
 
     // Desktop fullscreen hides bottom nav and system bars
     var desktopFullscreen by remember { mutableStateOf(false) }
-    // Terminal fullscreen — same chrome behaviour, owned by TerminalScreen (#138)
-    var terminalFullscreen by remember { mutableStateOf(false) }
+    // Terminal fullscreen — persists across navigation and rotation, owned by TerminalScreen (#138)
+    var terminalFullscreen by rememberSaveable { mutableStateOf(false) }
 
     // Drive window-level immersive fullscreen (decor-fits-system-windows false +
     // hide status/nav bars with swipe-to-reveal) from the root nav host so content
-    // extends edge-to-edge into status bar and cutout areas.
+    // extends edge-to-edge into status bar and cutout areas. Fullscreen applies
+    // when the currently active screen requests it.
     val currentActivity = LocalActivity.current ?: LocalContext.current.findActivity()
     val navHostWindow = currentActivity?.window
-    val anyFullscreen = desktopFullscreen || terminalFullscreen
-    LaunchedEffect(anyFullscreen, navHostWindow) {
+    val currentScreenFullscreen = when (selectedScreen) {
+        Screen.Terminal -> terminalFullscreen
+        Screen.Desktop -> desktopFullscreen
+        else -> false
+    }
+    LaunchedEffect(currentScreenFullscreen, navHostWindow) {
         if (navHostWindow != null) {
             val controller = WindowCompat.getInsetsController(navHostWindow, navHostWindow.decorView)
-            if (anyFullscreen) {
+            if (currentScreenFullscreen) {
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 controller.hide(WindowInsetsCompat.Type.systemBars())
@@ -560,16 +565,9 @@ fun HavenNavHost(
         }
     }
 
-    // Exit a tab's fullscreen mode when the pager settles on a different
-    // tab. Without this, switching from a fullscreen Terminal/Desktop to
-    // (e.g.) Keys leaves `terminalFullscreen = true`, which disables
-    // pager swipe (line 277) and strands the user — they'd swiped here
-    // but can no longer swipe back. Reported by maintainer 2026-05-07.
+    // Exit Desktop fullscreen mode when the pager settles on a different tab.
     LaunchedEffect(pagerState.settledPage) {
         val settled = screens.getOrNull(pagerState.settledPage)
-        if (settled != Screen.Terminal && terminalFullscreen) {
-            terminalFullscreen = false
-        }
         if (settled != Screen.Desktop && desktopFullscreen) {
             desktopFullscreen = false
         }
@@ -615,7 +613,7 @@ fun HavenNavHost(
             // leaving the page and the nav selection inconsistent. The
             // built-in stays enabled on the other pages (Connections/Desktop/
             // Keys/Settings), which have no override and rely on it.
-            userScrollEnabled = !desktopFullscreen && !terminalFullscreen && !desktopConnected && !terminalSelectionActive && !sftpEditorOpen && !sftpImageToolOpen &&
+            userScrollEnabled = !currentScreenFullscreen && !desktopConnected && !terminalSelectionActive && !sftpEditorOpen && !sftpImageToolOpen &&
                 selectedScreen != Screen.Terminal && selectedScreen != Screen.Sftp,
             modifier = modifier.nestedScroll(consumeHorizontalNestedScroll),
         ) { page ->
@@ -723,6 +721,7 @@ fun HavenNavHost(
                         interceptCtrlShiftV = interceptCtrlShiftV,
                         reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
                         showTabBar = showTerminalTabBar,
+                        fullscreenOverride = terminalFullscreen,
                         onFullscreenChanged = { terminalFullscreen = it },
                         onNavigateToConnections = {
                             coroutineScope.launch {
@@ -941,7 +940,7 @@ fun HavenNavHost(
                 MaterialTheme.colorScheme.background.copy(alpha = appBackgroundOpacity)
             else -> MaterialTheme.colorScheme.background
         },
-        contentWindowInsets = if (desktopFullscreen || terminalFullscreen) {
+        contentWindowInsets = if (currentScreenFullscreen) {
             WindowInsets(0, 0, 0, 0)
         } else {
             ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.ime)
@@ -953,7 +952,7 @@ fun HavenNavHost(
             // pager override gestures still switch screens, and the bar returns
             // as soon as the pager settles anywhere else.
             val hideForTerminalPref = hideNavBarInTerminal && selectedScreen == Screen.Terminal
-            if (!desktopFullscreen && !terminalFullscreen && !useSideNavigation && !hideForTerminalPref) {
+            if (!currentScreenFullscreen && !useSideNavigation && !hideForTerminalPref) {
                 NavigationBar {
                     navScreens.forEachIndexed { index, screen ->
                         val isDragged = index == navDragIndex
@@ -1055,7 +1054,7 @@ fun HavenNavHost(
             }
         },
     ) { innerPadding ->
-        val effectivePadding = if (desktopFullscreen || terminalFullscreen) {
+        val effectivePadding = if (currentScreenFullscreen) {
             PaddingValues(0.dp)
         } else {
             innerPadding
@@ -1067,7 +1066,7 @@ fun HavenNavHost(
                     .consumeWindowInsets(effectivePadding)
                     .imePadding(),
             ) {
-                if (!desktopFullscreen && !terminalFullscreen) {
+                if (!currentScreenFullscreen) {
                     NavigationRail(
                         modifier = Modifier.fillMaxHeight(),
                     ) {

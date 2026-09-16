@@ -252,6 +252,7 @@ fun TerminalScreen(
      */
     reflowTerminalOnKeyboard: Boolean = false,
     showTabBar: Boolean = true,
+    fullscreenOverride: Boolean? = null,
     onFullscreenChanged: (Boolean) -> Unit = {},
     onNavigateToConnections: () -> Unit = {},
     onNavigateToVnc: (host: String, port: Int, username: String?, password: String?, sshForward: Boolean, sshSessionId: String?, colorDepth: String) -> Unit = { _, _, _, _, _, _, _ -> },
@@ -288,15 +289,24 @@ fun TerminalScreen(
     viewModel: TerminalViewModel = hiltViewModel(),
 ) {
     var reorderMode by remember { mutableStateOf(false) }
-    // Fullscreen state — survives rotation via rememberSaveable.
-    // Setting this true tells the parent to hide the bottom nav / side
-    // rail and tells us to hide the tab bar; LaunchedEffect below also
-    // hides the system status + nav bars. Mirrors the desktop fullscreen
-    // pattern in VncScreen / RdpScreen.
-    var fullscreen by rememberSaveable { mutableStateOf(false) }
+    // Fullscreen state — when hosted under HavenNavHost, fullscreenOverride passes
+    // the parent-managed state so fullscreen persists across navigation and stays
+    // strictly synchronized with window insets (#138). When null, falls back to
+    // local rememberSaveable state.
+    var localFullscreen by rememberSaveable { mutableStateOf(false) }
+    val fullscreen = fullscreenOverride ?: localFullscreen
+    val setFullscreen: (Boolean) -> Unit = { newFullscreen ->
+        if (fullscreenOverride != null) {
+            onFullscreenChanged(newFullscreen)
+        } else {
+            localFullscreen = newFullscreen
+            onFullscreenChanged(newFullscreen)
+        }
+    }
     val view = LocalView.current
     val window = remember(view) { view.context.findActivity()?.window }
     LaunchedEffect(fullscreen, window) {
+        if (fullscreenOverride != null) return@LaunchedEffect
         onFullscreenChanged(fullscreen)
         if (window != null) {
             val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -315,15 +325,20 @@ fun TerminalScreen(
             // in fullscreen (e.g. user backgrounds the app), make sure
             // the system bars come back so the next surface isn't stuck
             // edge-to-edge.
-            if (fullscreen && window != null) {
+            if (fullscreenOverride == null && fullscreen && window != null) {
                 WindowCompat.getInsetsController(window, window.decorView)
                     .show(WindowInsetsCompat.Type.systemBars())
                 onFullscreenChanged(false)
             }
         }
     }
-    BackHandler(enabled = fullscreen) { fullscreen = false }
+    BackHandler(enabled = fullscreen) { setFullscreen(false) }
     val tabs by viewModel.tabs.collectAsState()
+    LaunchedEffect(tabs.isEmpty()) {
+        if (tabs.isEmpty() && fullscreen) {
+            setFullscreen(false)
+        }
+    }
     val activeTabIndex by viewModel.activeTabIndex.collectAsState()
     val ctrlActive by viewModel.ctrlActive.collectAsState()
     val altActive by viewModel.altActive.collectAsState()
@@ -1372,7 +1387,7 @@ fun TerminalScreen(
                             if (event.keyCode == android.view.KeyEvent.KEYCODE_F11 &&
                                 event.action == android.view.KeyEvent.ACTION_DOWN
                             ) {
-                                fullscreen = !currentFullscreen
+                                setFullscreen(!currentFullscreen)
                                 true
                             } else if (event.keyCode == android.view.KeyEvent.KEYCODE_F11) {
                                 // Swallow the matching ACTION_UP so the shell never
@@ -1799,7 +1814,7 @@ fun TerminalScreen(
                             mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null)
                         }
                         IconButton(
-                            onClick = { fullscreen = !fullscreen },
+                            onClick = { setFullscreen(!fullscreen) },
                             modifier = Modifier
                                 .align(fullscreenButtonCorner.toComposeAlignment())
                                 .offset { androidx.compose.ui.unit.IntOffset(fsDragOffset.x.toInt(), fsDragOffset.y.toInt()) }
