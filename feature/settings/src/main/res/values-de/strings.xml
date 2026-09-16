@@ -495,6 +495,4 @@
     <string name="settings_update_check_up_to_date">Aktuell auf %1$s</string>
     <string name="settings_update_check_failed">Prüfung fehlgeschlagen: %1$s</string>
     <string name="settings_update_check_other_channel">Diese Kopie wurde nicht aus einem GitHub-Release installiert, daher kann ein Release-Download sie nicht ersetzen. Aktualisiere dort, wo du Haven installiert hast.</string>
-    <string name="settings_terminal_immersive_fullscreen_title">Statusleiste im Terminal ausblenden</string>
-    <string name="settings_terminal_immersive_fullscreen_subtitle">Android-Statusleiste beim Öffnen des Terminals automatisch ausblenden. Die untere Navigationsleiste bleibt sichtbar.</string>
 </resources>

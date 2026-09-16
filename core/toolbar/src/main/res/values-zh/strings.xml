@@ -30,8 +30,6 @@
     <string name="toolbar_custom_key_label_placeholder">例如 ^C、Paste</string>
     <string name="toolbar_text_input_desc">打开悬浮文本输入</string>
     <string name="toolbar_dictate_desc">听写：开始语音输入</string>
-    <string name="toolbar_enter_fullscreen">进入全屏</string>
-    <string name="toolbar_exit_fullscreen">退出全屏</string>
     <string name="toolbar_tmux_title">TMUX 快捷操作</string>
     <string name="toolbar_tmux_cancel">取消</string>
     <string name="toolbar_tmux_section_session">会话管理</string>

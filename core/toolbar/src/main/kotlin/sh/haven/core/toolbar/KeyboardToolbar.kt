@@ -29,8 +29,6 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.FirstPage
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.LastPage
 import androidx.compose.material.icons.filled.Lock
@@ -226,8 +224,6 @@ data class ToolbarCallbacks(
      * own keyboard (Supernote + Futo, etc.).
      */
     val onDictateTap: () -> Unit = {},
-    val isFullscreen: Boolean = false,
-    val onToggleFullscreen: () -> Unit = {},
 )
 
 val LocalToolbarCallbacks = compositionLocalOf<ToolbarCallbacks> {
@@ -304,8 +300,6 @@ fun KeyboardToolbar(
     onAttachTap: () -> Unit = {},
     onOpenTextInput: () -> Unit = {},
     onDictateTap: () -> Unit = {},
-    isFullscreen: Boolean = false,
-    onToggleFullscreen: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var shiftActive by remember { mutableStateOf(false) }
@@ -383,8 +377,6 @@ fun KeyboardToolbar(
         onAttachTap = onAttachTap,
         onOpenTextInput = onOpenTextInput,
         onDictateTap = onDictateTap,
-        isFullscreen = isFullscreen,
-        onToggleFullscreen = onToggleFullscreen,
     )
 
     CompositionLocalProvider(
@@ -1097,15 +1089,6 @@ private fun BuiltInKey(
             active = cb.composeModeActive,
             onClick = cb.onToggleComposeMode,
         )
-        ToolbarKey.FULLSCREEN -> {
-            ToolbarIconButton(
-                icon = if (cb.isFullscreen) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
-                description = stringResource(
-                    if (cb.isFullscreen) R.string.toolbar_exit_fullscreen else R.string.toolbar_enter_fullscreen
-                ),
-                onClick = cb.onToggleFullscreen,
-            )
-        }
         ToolbarKey.TMUX -> {
             var showTmuxSheet by remember { mutableStateOf(false) }
             ToolbarTextButton("TMUX") { showTmuxSheet = true }
@@ -1478,7 +1461,6 @@ private fun keyIcon(key: ToolbarKey): ImageVector? = when (key) {
     ToolbarKey.VOICE_INPUT -> Icons.Filled.Mic
     ToolbarKey.HOME -> Icons.Filled.FirstPage
     ToolbarKey.END -> Icons.Filled.LastPage
-    ToolbarKey.FULLSCREEN -> Icons.Filled.Fullscreen
     else -> null
 }
 

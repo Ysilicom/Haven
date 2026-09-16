@@ -33,8 +33,6 @@
     <string name="toolbar_custom_key_label_placeholder">যেমন ^C, Paste</string>
     <string name="toolbar_text_input_desc">ভাসমান টেক্সট ইনপুট খুলুন</string>
     <string name="toolbar_dictate_desc">ডিক্টেশন: ভয়েস ইনপুট চালু করুন</string>
-    <string name="toolbar_enter_fullscreen">ফুলস্ক্রিন প্রবেশ করুন</string>
-    <string name="toolbar_exit_fullscreen">ফুলস্ক্রিন প্রস্থান করুন</string>
     <string name="toolbar_tmux_title">TMUX শর্টকাট</string>
     <string name="toolbar_tmux_cancel">বাতিল</string>
     <string name="toolbar_tmux_section_session">সেশন</string>

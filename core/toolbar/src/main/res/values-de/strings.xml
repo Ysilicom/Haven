@@ -33,8 +33,6 @@
     <string name="toolbar_custom_key_label_placeholder">z. B. ^C, Einfügen</string>
     <string name="toolbar_text_input_desc">Schwebende Texteingabe öffnen</string>
     <string name="toolbar_dictate_desc">Diktat: Spracheingabe starten</string>
-    <string name="toolbar_enter_fullscreen">Vollbild aktivieren</string>
-    <string name="toolbar_exit_fullscreen">Vollbild beenden</string>
     <string name="toolbar_tmux_title">TMUX-Aktionen</string>
     <string name="toolbar_tmux_cancel">Abbrechen</string>
     <string name="toolbar_tmux_section_session">Sitzung</string>

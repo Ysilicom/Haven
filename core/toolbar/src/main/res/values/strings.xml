@@ -32,8 +32,6 @@
     <string name="toolbar_text_input_desc">Open floating text input</string>
     <string name="toolbar_presets_label">Presets</string>
     <string name="toolbar_custom_key_label_placeholder">e.g. ^C, Paste</string>
-    <string name="toolbar_enter_fullscreen">Enter fullscreen</string>
-    <string name="toolbar_exit_fullscreen">Exit fullscreen</string>
     <string name="toolbar_tmux_title">TMUX Shortcuts</string>
     <string name="toolbar_tmux_cancel">Cancel</string>
     <string name="toolbar_tmux_section_session">Session</string>

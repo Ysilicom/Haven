@@ -495,6 +495,4 @@
     <string name="settings_update_check_up_to_date">%1$s-এ হালনাগাদ</string>
     <string name="settings_update_check_failed">যাচাই ব্যর্থ: %1$s</string>
     <string name="settings_update_check_other_channel">এই কপিটি GitHub রিলিজ থেকে ইনস্টল হয়নি, তাই রিলিজ ডাউনলোড এটি প্রতিস্থাপন করতে পারবে না। যেখান থেকে Haven ইনস্টল করেছিলেন সেখান থেকেই আপডেট করুন।</string>
-    <string name="settings_terminal_immersive_fullscreen_title">টার্মিনালে স্ট্যাটাস বার লুকান</string>
-    <string name="settings_terminal_immersive_fullscreen_subtitle">টার্মিনালে প্রবেশের সময় স্বয়ংক্রিয়ভাবে অ্যান্ড্রয়েড স্ট্যাটাস বার লুকান। নিচের নেভিগেশন বার দৃশ্যমান থাকবে।</string>
 </resources>

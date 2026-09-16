@@ -6864,46 +6864,6 @@
      }
     },
     {
-     "name": "toolbar_enter_fullscreen",
-     "en": "Enter fullscreen",
-     "comment": "Strings added for issue #210 localisation",
-     "args": [],
-     "t": {
-      "ar": "ملء الشاشة",
-      "bn": "ফুলস্ক্রিন প্রবেশ করুন",
-      "de": "Vollbild aktivieren",
-      "es": "Pantalla completa",
-      "fr": "Plein écran",
-      "hi": "फ़ुलस्क्रीन में जाएं",
-      "ja": "全画面表示",
-      "ko": "전체 화면 시작",
-      "pt": "Tela cheia",
-      "ru": "Полноэкранный режим",
-      "sr": "Уђи у пун екран",
-      "zh": "进入全屏"
-     }
-    },
-    {
-     "name": "toolbar_exit_fullscreen",
-     "en": "Exit fullscreen",
-     "comment": "Strings added for issue #210 localisation",
-     "args": [],
-     "t": {
-      "ar": "الخروج من ملء الشاشة",
-      "bn": "ফুলস্ক্রিন প্রস্থান করুন",
-      "de": "Vollbild beenden",
-      "es": "Salir de pantalla completa",
-      "fr": "Quitter le plein écran",
-      "hi": "फ़ुलस्क्रीन से बाहर निकलें",
-      "ja": "全画面表示を終了",
-      "ko": "전체 화면 종료",
-      "pt": "Sair da tela cheia",
-      "ru": "Выйти из полноэкранного режима",
-      "sr": "Напусти пун екран",
-      "zh": "退出全屏"
-     }
-    },
-    {
      "name": "toolbar_tmux_title",
      "en": "TMUX Shortcuts",
      "comment": "Strings added for issue #210 localisation",
@@ -35838,46 +35798,6 @@
       "ru": "Отмена",
       "sr": "Откажи",
       "zh": "取消"
-     }
-    },
-    {
-     "name": "settings_terminal_immersive_fullscreen_title",
-     "en": "Hide status bar in terminal",
-     "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
-     "args": [],
-     "t": {
-      "ar": "إخفاء شريط الحالة في الطرفية",
-      "bn": "টার্মিনালে স্ট্যাটাস বার লুকান",
-      "de": "Statusleiste im Terminal ausblenden",
-      "es": "Ocultar barra de estado en terminal",
-      "fr": "Masquer la barre d\\'état dans le terminal",
-      "hi": "टर्मिनल में स्टेटस बार छिपाएं",
-      "ja": "ターミナルでステータスバーを非表示",
-      "ko": "터미널에서 상태 표시줄 숨기기",
-      "pt": "Ocultar barra de status no terminal",
-      "ru": "Скрыть строку состояния в терминале",
-      "sr": "Сакриј статусну траку у терминалу",
-      "zh": "在终端中隐藏状态栏"
-     }
-    },
-    {
-     "name": "settings_terminal_immersive_fullscreen_subtitle",
-     "en": "Automatically hide Android status bar when entering the terminal. The bottom navigation bar stays visible.",
-     "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
-     "args": [],
-     "t": {
-      "ar": "إخفاء شريط حالة Android تلقائيًا عند دخول الطرفية. يظل شريط التنقل السفلي مرئيًا.",
-      "bn": "টার্মিনালে প্রবেশের সময় স্বয়ংক্রিয়ভাবে অ্যান্ড্রয়েড স্ট্যাটাস বার লুকান। নিচের নেভিগেশন বার দৃশ্যমান থাকবে।",
-      "de": "Android-Statusleiste beim Öffnen des Terminals automatisch ausblenden. Die untere Navigationsleiste bleibt sichtbar.",
-      "es": "Ocultar automáticamente la barra de estado de Android al entrar a la terminal. La barra de navegación inferior permanece visible.",
-      "fr": "Masquer automatiquement la barre d\\'état Android lors de l\\'ouverture du terminal. La barre de navigation inférieure reste visible.",
-      "hi": "टर्मिनल में प्रवेश करते समय स्वचालित रूप से एंड्रॉइड स्टेटस बार छिपाएं। निचला नेविगेशन बार दिखाई देता रहेगा।",
-      "ja": "ターミナルに入ったときに Android のステータスバーを自動的に非表示にします。下部ナビゲーションバーは表示されたままになります。",
-      "ko": "터미널 시작 시 Android 상태 표시줄을 자동으로 숨깁니다. 하단 내비게이션 바는 계속 표시됩니다.",
-      "pt": "Ocultar automaticamente a barra de status do Android ao entrar no terminal. A barra de navegação inferior permanece visível.",
-      "ru": "Автоматически скрывать строку состояния Android при входе в терминал. Нижняя панель навигации остаётся видимой.",
-      "sr": "Аутоматски сакриј Андроид статусну траку при уласку у терминал. Доња навигациона трака остаје видљива.",
-      "zh": "进入终端时自动隐藏 Android 顶部状态栏以增加显示高度。底部导航栏保持可见。"
      }
     }
    ]

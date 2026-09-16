@@ -33,8 +33,6 @@
     <string name="toolbar_custom_key_label_placeholder">ex. ^C, Coller</string>
     <string name="toolbar_text_input_desc">Ouvrir la saisie de texte flottante</string>
     <string name="toolbar_dictate_desc">Dictée : lancer la saisie vocale</string>
-    <string name="toolbar_enter_fullscreen">Plein écran</string>
-    <string name="toolbar_exit_fullscreen">Quitter le plein écran</string>
     <string name="toolbar_tmux_title">Raccourcis TMUX</string>
     <string name="toolbar_tmux_cancel">Annuler</string>
     <string name="toolbar_tmux_section_session">Session</string>

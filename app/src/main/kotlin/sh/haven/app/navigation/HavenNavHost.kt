@@ -431,8 +431,6 @@ fun HavenNavHost(
         .collectAsState(initial = false)
     val hideNavBarInTerminal by preferencesRepository.hideNavBarInTerminal
         .collectAsState(initial = false)
-    val terminalImmersiveFullscreen by preferencesRepository.terminalImmersiveFullscreen
-        .collectAsState(initial = false)
     val mouseInputEnabled by preferencesRepository.mouseInputEnabled
         .collectAsState(initial = true)
     val terminalRightClick by preferencesRepository.terminalRightClick
@@ -725,7 +723,6 @@ fun HavenNavHost(
                         interceptCtrlShiftV = interceptCtrlShiftV,
                         reflowTerminalOnKeyboard = reflowTerminalOnKeyboard,
                         showTabBar = showTerminalTabBar,
-                        terminalImmersiveFullscreen = terminalImmersiveFullscreen,
                         onFullscreenChanged = { terminalFullscreen = it },
                         onNavigateToConnections = {
                             coroutineScope.launch {

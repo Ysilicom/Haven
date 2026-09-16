@@ -33,8 +33,6 @@
     <string name="toolbar_custom_key_label_placeholder">p. ej. ^C, Paste</string>
     <string name="toolbar_text_input_desc">Abrir entrada de texto flotante</string>
     <string name="toolbar_dictate_desc">Dictar: iniciar entrada de voz</string>
-    <string name="toolbar_enter_fullscreen">Pantalla completa</string>
-    <string name="toolbar_exit_fullscreen">Salir de pantalla completa</string>
     <string name="toolbar_tmux_title">Atajos de TMUX</string>
     <string name="toolbar_tmux_cancel">Cancelar</string>
     <string name="toolbar_tmux_section_session">Sesión</string>

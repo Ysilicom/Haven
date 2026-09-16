@@ -497,6 +497,4 @@
     <string name="settings_update_check_up_to_date">Установлена последняя версия %1$s</string>
     <string name="settings_update_check_failed">Не удалось проверить: %1$s</string>
     <string name="settings_update_check_other_channel">Эта копия установлена не из выпуска на GitHub, поэтому загрузка с GitHub её не заменит. Обновляйтесь там, где вы установили Haven.</string>
-    <string name="settings_terminal_immersive_fullscreen_title">Скрыть строку состояния в терминале</string>
-    <string name="settings_terminal_immersive_fullscreen_subtitle">Автоматически скрывать строку состояния Android при входе в терминал. Нижняя панель навигации остаётся видимой.</string>
 </resources>

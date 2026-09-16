@@ -33,8 +33,6 @@
     <string name="toolbar_custom_key_label_placeholder">उदा. ^C, Paste</string>
     <string name="toolbar_text_input_desc">फ़्लोटिंग टेक्स्ट इनपुट खोलें</string>
     <string name="toolbar_dictate_desc">बोलकर लिखें: वॉइस इनपुट शुरू करें</string>
-    <string name="toolbar_enter_fullscreen">फ़ुलस्क्रीन में जाएं</string>
-    <string name="toolbar_exit_fullscreen">फ़ुलस्क्रीन से बाहर निकलें</string>
     <string name="toolbar_tmux_title">TMUX शॉर्टकट</string>
     <string name="toolbar_tmux_cancel">रद्द करें</string>
     <string name="toolbar_tmux_section_session">सत्र</string>

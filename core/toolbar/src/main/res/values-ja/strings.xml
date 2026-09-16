@@ -33,8 +33,6 @@
     <string name="toolbar_custom_key_label_placeholder">例: ^C, Paste</string>
     <string name="toolbar_text_input_desc">フローティング テキスト入力を開く</string>
     <string name="toolbar_dictate_desc">音声入力: ディクテーション開始</string>
-    <string name="toolbar_enter_fullscreen">全画面表示</string>
-    <string name="toolbar_exit_fullscreen">全画面表示を終了</string>
     <string name="toolbar_tmux_title">TMUX ショートカット</string>
     <string name="toolbar_tmux_cancel">キャンセル</string>
     <string name="toolbar_tmux_section_session">セッション</string>

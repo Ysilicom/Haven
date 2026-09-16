@@ -28,8 +28,6 @@
   <string name="toolbar_text_input_desc">Отвара плутајући унос текста</string>
   <string name="toolbar_presets_label">Сачувана подешавања</string>
   <string name="toolbar_custom_key_label_placeholder">нпр. ^C, Налепи</string>
-    <string name="toolbar_enter_fullscreen">Уђи у пун екран</string>
-    <string name="toolbar_exit_fullscreen">Напусти пун екран</string>
     <string name="toolbar_tmux_title">TMUX пречице</string>
     <string name="toolbar_tmux_cancel">Откажи</string>
     <string name="toolbar_tmux_section_session">Сесија</string>

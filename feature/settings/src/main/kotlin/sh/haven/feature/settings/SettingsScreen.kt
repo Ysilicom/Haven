@@ -203,7 +203,6 @@ fun SettingsScreen(
     val showCopyOutputButton by viewModel.showCopyOutputButton.collectAsState()
     val keepScreenOnInTerminal by viewModel.keepScreenOnInTerminal.collectAsState()
     val hideNavBarInTerminal by viewModel.hideNavBarInTerminal.collectAsState()
-    val terminalImmersiveFullscreen by viewModel.terminalImmersiveFullscreen.collectAsState()
     val connectionLoggingEnabled by viewModel.connectionLoggingEnabled.collectAsState()
     val excludeFromRecents by viewModel.excludeFromRecents.collectAsState()
     val verboseLoggingEnabled by viewModel.verboseLoggingEnabled.collectAsState()
@@ -752,13 +751,6 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_hide_nav_bar_in_terminal_subtitle),
             checked = hideNavBarInTerminal,
             onCheckedChange = viewModel::setHideNavBarInTerminal,
-        )
-        SettingsToggleItem(
-            icon = Icons.Filled.Fullscreen,
-            title = stringResource(R.string.settings_terminal_immersive_fullscreen_title),
-            subtitle = stringResource(R.string.settings_terminal_immersive_fullscreen_subtitle),
-            checked = terminalImmersiveFullscreen,
-            onCheckedChange = viewModel::setTerminalImmersiveFullscreen,
         )
         SettingsToggleItem(
             icon = Icons.Filled.Keyboard,

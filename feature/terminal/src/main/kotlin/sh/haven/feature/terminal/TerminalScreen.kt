@@ -252,7 +252,6 @@ fun TerminalScreen(
      */
     reflowTerminalOnKeyboard: Boolean = false,
     showTabBar: Boolean = true,
-    terminalImmersiveFullscreen: Boolean = false,
     onFullscreenChanged: (Boolean) -> Unit = {},
     onNavigateToConnections: () -> Unit = {},
     onNavigateToVnc: (host: String, port: Int, username: String?, password: String?, sshForward: Boolean, sshSessionId: String?, colorDepth: String) -> Unit = { _, _, _, _, _, _, _ -> },
@@ -292,39 +291,11 @@ fun TerminalScreen(
     // Fullscreen state — survives rotation via rememberSaveable.
     // Setting this true tells the parent to hide the bottom nav / side
     // rail and tells us to hide the tab bar; LaunchedEffect below also
+    // hides the system status + nav bars. Mirrors the desktop fullscreen
+    // pattern in VncScreen / RdpScreen.
     var fullscreen by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
     val window = remember(view) { view.context.findActivity()?.window }
-    val imeVisible = WindowInsets.isImeVisible
-
-    // Automatically hide only top status bar if terminalImmersiveFullscreen is enabled (bottom nav is always preserved)
-    LaunchedEffect(isActive, terminalImmersiveFullscreen, fullscreen, window) {
-        if (window != null && !fullscreen) {
-            val controller = WindowCompat.getInsetsController(window, window.decorView)
-            if (isActive && terminalImmersiveFullscreen) {
-                controller.systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                controller.hide(WindowInsetsCompat.Type.statusBars())
-            } else {
-                controller.show(WindowInsetsCompat.Type.statusBars())
-            }
-        }
-    }
-
-    LaunchedEffect(imeVisible, fullscreen, terminalImmersiveFullscreen, isActive, window) {
-        if (!imeVisible && window != null) {
-            val controller = WindowCompat.getInsetsController(window, window.decorView)
-            if (fullscreen) {
-                controller.systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                controller.hide(WindowInsetsCompat.Type.systemBars())
-            } else if (isActive && terminalImmersiveFullscreen) {
-                controller.systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                controller.hide(WindowInsetsCompat.Type.statusBars())
-            }
-        }
-    }
     LaunchedEffect(fullscreen, window) {
         onFullscreenChanged(fullscreen)
         if (window != null) {
@@ -1986,8 +1957,6 @@ fun TerminalScreen(
                                 ).show()
                             }
                         },
-                        isFullscreen = fullscreen,
-                        onToggleFullscreen = { fullscreen = !fullscreen },
                         selectionContent = selectionController?.let { ctrl -> {
                             SelectionToolbarContent(
                                 controller = ctrl,

@@ -33,8 +33,6 @@
     <string name="toolbar_custom_key_label_placeholder">ex. ^C, Colar</string>
     <string name="toolbar_text_input_desc">Abrir entrada de texto flutuante</string>
     <string name="toolbar_dictate_desc">Ditar: iniciar entrada de voz</string>
-    <string name="toolbar_enter_fullscreen">Tela cheia</string>
-    <string name="toolbar_exit_fullscreen">Sair da tela cheia</string>
     <string name="toolbar_tmux_title">Atalhos TMUX</string>
     <string name="toolbar_tmux_cancel">Cancelar</string>
     <string name="toolbar_tmux_section_session">Sessão</string>

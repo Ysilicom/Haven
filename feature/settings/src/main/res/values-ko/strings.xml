@@ -494,6 +494,4 @@
     <string name="settings_update_check_up_to_date">최신 버전입니다 (%1$s)</string>
     <string name="settings_update_check_failed">확인 실패: %1$s</string>
     <string name="settings_update_check_other_channel">이 사본은 GitHub 릴리스에서 설치된 것이 아니므로 릴리스 다운로드로 대체할 수 없습니다. Haven을 설치한 곳에서 업데이트하세요.</string>
-    <string name="settings_terminal_immersive_fullscreen_title">터미널에서 상태 표시줄 숨기기</string>
-    <string name="settings_terminal_immersive_fullscreen_subtitle">터미널 시작 시 Android 상태 표시줄을 자동으로 숨깁니다. 하단 내비게이션 바는 계속 표시됩니다.</string>
 </resources>

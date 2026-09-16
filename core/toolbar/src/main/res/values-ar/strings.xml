@@ -33,8 +33,6 @@
     <string name="toolbar_custom_key_label_placeholder">مثال: ^C, Paste</string>
     <string name="toolbar_text_input_desc">فتح إدخال النص العائم</string>
     <string name="toolbar_dictate_desc">إملاء: بدء الإدخال الصوتي</string>
-    <string name="toolbar_enter_fullscreen">ملء الشاشة</string>
-    <string name="toolbar_exit_fullscreen">الخروج من ملء الشاشة</string>
     <string name="toolbar_tmux_title">اختصارات TMUX</string>
     <string name="toolbar_tmux_cancel">إلغاء</string>
     <string name="toolbar_tmux_section_session">الجلسة</string>
