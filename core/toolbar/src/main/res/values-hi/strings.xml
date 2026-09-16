@@ -38,4 +38,22 @@
     <string name="toolbar_tmux_kill_confirm_title">TMUX सत्र समाप्त करें?</string>
     <string name="toolbar_tmux_kill_confirm_message">यह संपूर्ण TMUX सत्र और प्रक्रियाओं को समाप्त कर देगा। क्या आप सुनिश्चित हैं?</string>
     <string name="toolbar_tmux_kill_confirm_button">सत्र समाप्त करें</string>
+
+    <string name="toolbar_tmux_state_outside">सत्र के बाहर</string>
+    <string name="toolbar_tmux_state_inside">सत्र के भीतर</string>
+    <string name="toolbar_tmux_new_session">नया सत्र</string>
+    <string name="toolbar_tmux_new_session_sub">नामित सत्र बनाएं</string>
+    <string name="toolbar_tmux_attach_session_named">सत्र से जुड़ें</string>
+    <string name="toolbar_tmux_attach_session_named_sub">मौजूदा सत्र से जुड़ें</string>
+    <string name="toolbar_tmux_detach_named">पृष्ठभूमि (Detach)</string>
+    <string name="toolbar_tmux_detach_named_sub">पृष्ठभूमि में चलाएं और शैल पर लौटें</string>
+    <string name="toolbar_tmux_kill_session_named">सत्र समाप्त करें</string>
+    <string name="toolbar_tmux_kill_session_named_sub">सत्र और सभी प्रक्रियाएं समाप्त करें</string>
+    <string name="toolbar_tmux_disabled_in_session">पहले से सत्र में हैं</string>
+    <string name="toolbar_tmux_disabled_outside">सत्र में नहीं हैं</string>
+    <string name="toolbar_tmux_dialog_new_title">नया TMUX सत्र</string>
+    <string name="toolbar_tmux_dialog_attach_title">TMUX सत्र से जुड़ें</string>
+    <string name="toolbar_tmux_dialog_name_label">सत्र का नाम</string>
+    <string name="toolbar_tmux_dialog_confirm">पुष्टि करें</string>
+    <string name="toolbar_tmux_dialog_list_sessions">सभी सत्र देखें (tmux ls)</string>
 </resources>

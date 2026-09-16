@@ -38,4 +38,22 @@
     <string name="toolbar_tmux_kill_confirm_title">Encerrar sessão TMUX?</string>
     <string name="toolbar_tmux_kill_confirm_message">Isso encerrará toda a sessão TMUX e os processos em execução. Tem certeza?</string>
     <string name="toolbar_tmux_kill_confirm_button">Encerrar sessão</string>
+
+    <string name="toolbar_tmux_state_outside">Fora da sessão</string>
+    <string name="toolbar_tmux_state_inside">Dentro da sessão</string>
+    <string name="toolbar_tmux_new_session">Nova sessão</string>
+    <string name="toolbar_tmux_new_session_sub">Criar uma sessão nomeada</string>
+    <string name="toolbar_tmux_attach_session_named">Conectar à sessão</string>
+    <string name="toolbar_tmux_attach_session_named_sub">Conectar a uma sessão existente</string>
+    <string name="toolbar_tmux_detach_named">Segundo plano (Detach)</string>
+    <string name="toolbar_tmux_detach_named_sub">Manter em segundo plano e voltar ao shell</string>
+    <string name="toolbar_tmux_kill_session_named">Encerrar sessão</string>
+    <string name="toolbar_tmux_kill_session_named_sub">Encerrar a sessão e todos os processos</string>
+    <string name="toolbar_tmux_disabled_in_session">Já em uma sessão</string>
+    <string name="toolbar_tmux_disabled_outside">Não está em uma sessão</string>
+    <string name="toolbar_tmux_dialog_new_title">Nova sessão TMUX</string>
+    <string name="toolbar_tmux_dialog_attach_title">Conectar à sessão TMUX</string>
+    <string name="toolbar_tmux_dialog_name_label">Nome da sessão</string>
+    <string name="toolbar_tmux_dialog_confirm">Confirmar</string>
+    <string name="toolbar_tmux_dialog_list_sessions">Listar sessões (tmux ls)</string>
 </resources>

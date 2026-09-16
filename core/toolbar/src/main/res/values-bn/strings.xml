@@ -38,4 +38,22 @@
     <string name="toolbar_tmux_kill_confirm_title">TMUX সেশন সমাপ্ত করবেন?</string>
     <string name="toolbar_tmux_kill_confirm_message">এটি সম্পূর্ণ TMUX সেশন এবং চলমান প্রক্রিয়াগুলি বন্ধ করবে। আপনি কি নিশ্চিত?</string>
     <string name="toolbar_tmux_kill_confirm_button">সেশন বন্ধ করুন</string>
+
+    <string name="toolbar_tmux_state_outside">সেশনের বাইরে</string>
+    <string name="toolbar_tmux_state_inside">সেশনের মধ্যে</string>
+    <string name="toolbar_tmux_new_session">নতুন সেশন</string>
+    <string name="toolbar_tmux_new_session_sub">নামযুক্ত সেশন তৈরি করুন</string>
+    <string name="toolbar_tmux_attach_session_named">সেশনে যুক্ত হন</string>
+    <string name="toolbar_tmux_attach_session_named_sub">বিদ্যমান সেশনে যুক্ত হন</string>
+    <string name="toolbar_tmux_detach_named">পটভূমি (Detach)</string>
+    <string name="toolbar_tmux_detach_named_sub">ব্যাকগ্রাউন্ডে চালান এবং শেলের ফিরে যান</string>
+    <string name="toolbar_tmux_kill_session_named">সেশন সমাপ্ত করুন</string>
+    <string name="toolbar_tmux_kill_session_named_sub">সেশন এবং সমস্ত প্রক্রিয়া সমাপ্ত করুন</string>
+    <string name="toolbar_tmux_disabled_in_session">ইতিমধ্যে সেশনে রয়েছেন</string>
+    <string name="toolbar_tmux_disabled_outside">সেশনে নেই</string>
+    <string name="toolbar_tmux_dialog_new_title">নতুন TMUX সেশন</string>
+    <string name="toolbar_tmux_dialog_attach_title">TMUX সেশনে যুক্ত হন</string>
+    <string name="toolbar_tmux_dialog_name_label">সেশনের নাম</string>
+    <string name="toolbar_tmux_dialog_confirm">নিশ্চিত করুন</string>
+    <string name="toolbar_tmux_dialog_list_sessions">সব সেশন দেখুন (tmux ls)</string>
 </resources>

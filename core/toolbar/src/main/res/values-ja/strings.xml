@@ -38,4 +38,22 @@
     <string name="toolbar_tmux_kill_confirm_title">TMUX セッションを終了しますか？</string>
     <string name="toolbar_tmux_kill_confirm_message">TMUX セッションと実行中のすべてのプロセスが終了します。よろしいですか？</string>
     <string name="toolbar_tmux_kill_confirm_button">セッション終了</string>
+
+    <string name="toolbar_tmux_state_outside">セッション外</string>
+    <string name="toolbar_tmux_state_inside">セッション内</string>
+    <string name="toolbar_tmux_new_session">新規セッション</string>
+    <string name="toolbar_tmux_new_session_sub">名前を指定してセッションを作成</string>
+    <string name="toolbar_tmux_attach_session_named">指定セッションに接続</string>
+    <string name="toolbar_tmux_attach_session_named_sub">既存のバックグラウンドセッションに接続</string>
+    <string name="toolbar_tmux_detach_named">バックグラウンド待機 (Detach)</string>
+    <string name="toolbar_tmux_detach_named_sub">プロセスを維持したままシェルに戻る</string>
+    <string name="toolbar_tmux_kill_session_named">セッションを終了</string>
+    <string name="toolbar_tmux_kill_session_named_sub">セッションと内部プロセスを終了</string>
+    <string name="toolbar_tmux_disabled_in_session">セッション内のため利用不可</string>
+    <string name="toolbar_tmux_disabled_outside">セッション外のため利用不可</string>
+    <string name="toolbar_tmux_dialog_new_title">新規 TMUX セッション</string>
+    <string name="toolbar_tmux_dialog_attach_title">TMUX セッションに接続</string>
+    <string name="toolbar_tmux_dialog_name_label">セッション名</string>
+    <string name="toolbar_tmux_dialog_confirm">確定</string>
+    <string name="toolbar_tmux_dialog_list_sessions">セッション一覧を表示 (tmux ls)</string>
 </resources>
