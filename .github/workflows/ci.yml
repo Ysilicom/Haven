@@ -327,9 +327,11 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
       - name: Configure swap and free disk space
         run: |
-          # Free 20GB+ disk space from unused runner toolcache
-          sudo rm -rf /usr/share/swift /usr/local/share/powershell /usr/share/miniconda /opt/hostedtoolcache
+          # Free 15GB+ disk space from unused runner runtimes, preserving Java for JDK 21
+          find /opt/hostedtoolcache -mindepth 1 -maxdepth 1 ! -name 'Java*' -exec sudo rm -rf {} + || true
+          sudo rm -rf /usr/share/swift /usr/local/share/powershell /usr/share/miniconda
           sudo apt-get clean || true
+          java -version
           df -h
 
           # Create 4GB swap space (MEMSAMPLE showed peak swap usage was ~3.5GB)
