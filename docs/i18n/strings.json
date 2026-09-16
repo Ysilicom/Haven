@@ -35842,42 +35842,42 @@
     },
     {
      "name": "settings_terminal_immersive_fullscreen_title",
-     "en": "Terminal immersive fullscreen",
+     "en": "Hide status bar in terminal",
      "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
      "args": [],
      "t": {
-      "ar": "ملء الشاشة الغامر في الطرفية",
-      "bn": "টার্মিনাল নিমগ্ন পূর্ণস্ক্রিন",
-      "de": "Immersiver Vollbildmodus im Terminal",
-      "es": "Pantalla completa inmersiva en terminal",
-      "fr": "Plein écran immersif dans le terminal",
-      "hi": "टर्मिनल इमर्सिव फ़ुलस्क्रीन",
-      "ja": "ターミナルの没入型全画面",
-      "ko": "터미널 몰입형 전체 화면",
-      "pt": "Tela cheia imersiva no terminal",
-      "ru": "Полноэкранный режим терминала",
-      "sr": "Имерзивни пун екран терминала",
-      "zh": "终端沉浸式全屏"
+      "ar": "إخفاء شريط الحالة في الطرفية",
+      "bn": "টার্মিনালে স্ট্যাটাস বার লুকান",
+      "de": "Statusleiste im Terminal ausblenden",
+      "es": "Ocultar barra de estado en terminal",
+      "fr": "Masquer la barre d\\'état dans le terminal",
+      "hi": "टर्मिनल में स्टेटस बार छिपाएं",
+      "ja": "ターミナルでステータスバーを非表示",
+      "ko": "터미널에서 상태 표시줄 숨기기",
+      "pt": "Ocultar barra de status no terminal",
+      "ru": "Скрыть строку состояния в терминале",
+      "sr": "Сакриј статусну траку у терминалу",
+      "zh": "在终端中隐藏状态栏"
      }
     },
     {
      "name": "settings_terminal_immersive_fullscreen_subtitle",
-     "en": "Automatically hide Android status bar and navigation bar when entering the terminal",
+     "en": "Automatically hide Android status bar when entering the terminal. The bottom navigation bar stays visible.",
      "comment": "#579: shown only when the Keystore has permanently lost the credential master key. Repair regenerates it; already-stored secrets are gone either way.",
      "args": [],
      "t": {
-      "ar": "إخفاء شريط الحالة وشريط التنقل لنظام Android تلقائيًا عند دخول الطرفية",
-      "bn": "টার্মিনালে প্রবেশের সময় স্বয়ংক্রিয়ভাবে অ্যান্ড্রয়েড স্ট্যাটাস বার এবং নেভিগেশন বার লুকান",
-      "de": "Android-Statusleiste und Navigationsleiste beim Öffnen des Terminals automatisch ausblenden",
-      "es": "Ocultar automáticamente la barra de estado y de navegación de Android al entrar a la terminal",
-      "fr": "Masquer automatiquement la barre d\\'état et la barre de navigation Android lors de l\\'ouverture du terminal",
-      "hi": "टर्मिनल में प्रवेश करते समय एंड्रॉइड स्टेटस बार और नेविगेशन बार को स्वचालित रूप से छिपाएं",
-      "ja": "ターミナルに入ったときに Android のステータスバーとナビゲーションバーを自動的に非表示にします",
-      "ko": "터미널 시작 시 Android 상태 표시줄 및 내비게이션 바 자동 숨기기",
-      "pt": "Ocultar automaticamente a barra de status e de navegação do Android ao entrar no terminal",
-      "ru": "Автоматически скрывать строку состояния и панель навигации Android при входе в терминал",
-      "sr": "Аутоматски сакриј Андроид статусну и навигациону траку при уласку у терминал",
-      "zh": "进入终端时自动隐藏 Android 状态栏和底部导航栏"
+      "ar": "إخفاء شريط حالة Android تلقائيًا عند دخول الطرفية. يظل شريط التنقل السفلي مرئيًا.",
+      "bn": "টার্মিনালে প্রবেশের সময় স্বয়ংক্রিয়ভাবে অ্যান্ড্রয়েড স্ট্যাটাস বার লুকান। নিচের নেভিগেশন বার দৃশ্যমান থাকবে।",
+      "de": "Android-Statusleiste beim Öffnen des Terminals automatisch ausblenden. Die untere Navigationsleiste bleibt sichtbar.",
+      "es": "Ocultar automáticamente la barra de estado de Android al entrar a la terminal. La barra de navegación inferior permanece visible.",
+      "fr": "Masquer automatiquement la barre d\\'état Android lors de l\\'ouverture du terminal. La barre de navigation inférieure reste visible.",
+      "hi": "टर्मिनल में प्रवेश करते समय स्वचालित रूप से एंड्रॉइड स्टेटस बार छिपाएं। निचला नेविगेशन बार दिखाई देता रहेगा।",
+      "ja": "ターミナルに入ったときに Android のステータスバーを自動的に非表示にします。下部ナビゲーションバーは表示されたままになります。",
+      "ko": "터미널 시작 시 Android 상태 표시줄을 자동으로 숨깁니다. 하단 내비게이션 바는 계속 표시됩니다.",
+      "pt": "Ocultar automaticamente a barra de status do Android ao entrar no terminal. A barra de navegação inferior permanece visível.",
+      "ru": "Автоматически скрывать строку состояния Android при входе в терминал. Нижняя панель навигации остаётся видимой.",
+      "sr": "Аутоматски сакриј Андроид статусну траку при уласку у терминал. Доња навигациона трака остаје видљива.",
+      "zh": "进入终端时自动隐藏 Android 顶部状态栏以增加显示高度。底部导航栏保持可见。"
      }
     }
    ]

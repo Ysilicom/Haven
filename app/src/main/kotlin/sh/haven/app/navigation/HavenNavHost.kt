@@ -567,12 +567,10 @@ fun HavenNavHost(
     // (e.g.) Keys leaves `terminalFullscreen = true`, which disables
     // pager swipe (line 277) and strands the user — they'd swiped here
     // but can no longer swipe back. Reported by maintainer 2026-05-07.
-    LaunchedEffect(pagerState.settledPage, terminalImmersiveFullscreen) {
+    LaunchedEffect(pagerState.settledPage) {
         val settled = screens.getOrNull(pagerState.settledPage)
         if (settled != Screen.Terminal && terminalFullscreen) {
             terminalFullscreen = false
-        } else if (settled == Screen.Terminal && terminalImmersiveFullscreen && !terminalFullscreen) {
-            terminalFullscreen = true
         }
         if (settled != Screen.Desktop && desktopFullscreen) {
             desktopFullscreen = false

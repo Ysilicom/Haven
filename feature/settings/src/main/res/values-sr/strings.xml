@@ -429,6 +429,6 @@
     <string name="settings_credential_reset_body">Ово креира нови кључ акредитива тако да лозинке поново могу да се сачувају. Свака лозинка, приступна реченица и тајна која је већ сачувана у апликацији Haven ће морати поново да се унесе. Оне већ не могу да се прочитају — кључ који их је штитио је нестао — тако да ово опоравља апликацију, а не спречава неки даљи губитак.</string>
     <string name="settings_credential_reset_confirm">Поправи</string>
     <string name="settings_credential_reset_cancel">Откажи</string>
-    <string name="settings_terminal_immersive_fullscreen_title">Имерзивни пун екран терминала</string>
-    <string name="settings_terminal_immersive_fullscreen_subtitle">Аутоматски сакриј Андроид статусну и навигациону траку при уласку у терминал</string>
+    <string name="settings_terminal_immersive_fullscreen_title">Сакриј статусну траку у терминалу</string>
+    <string name="settings_terminal_immersive_fullscreen_subtitle">Аутоматски сакриј Андроид статусну траку при уласку у терминал. Доња навигациона трака остаје видљива.</string>
 </resources>

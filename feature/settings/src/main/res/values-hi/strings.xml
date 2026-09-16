@@ -495,6 +495,6 @@
     <string name="settings_update_check_up_to_date">%1$s पर अद्यतित</string>
     <string name="settings_update_check_failed">जाँच विफल: %1$s</string>
     <string name="settings_update_check_other_channel">यह प्रति GitHub रिलीज़ से इंस्टॉल नहीं हुई थी, इसलिए रिलीज़ डाउनलोड इसे बदल नहीं सकता। जहाँ से Haven इंस्टॉल किया था वहीं से अपडेट करें।</string>
-    <string name="settings_terminal_immersive_fullscreen_title">टर्मिनल इमर्सिव फ़ुलस्क्रीन</string>
-    <string name="settings_terminal_immersive_fullscreen_subtitle">टर्मिनल में प्रवेश करते समय एंड्रॉइड स्टेटस बार और नेविगेशन बार को स्वचालित रूप से छिपाएं</string>
+    <string name="settings_terminal_immersive_fullscreen_title">टर्मिनल में स्टेटस बार छिपाएं</string>
+    <string name="settings_terminal_immersive_fullscreen_subtitle">टर्मिनल में प्रवेश करते समय स्वचालित रूप से एंड्रॉइड स्टेटस बार छिपाएं। निचला नेविगेशन बार दिखाई देता रहेगा।</string>
 </resources>
