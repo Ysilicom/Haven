@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Default target APK path
-APK="${1:-/home/zephyr/Haven/build-output/haven-5.87.86-arm64-debug.apk}"
+APK="${1:-$(find /home/zephyr/Haven/build-output -name "*.apk" 2>/dev/null | sort -V | tail -n 1)}"
 KS="${HAVENX_KEYSTORE:-$HOME/.config/havenx/havenx-release.jks}"
 
 # Find apksigner

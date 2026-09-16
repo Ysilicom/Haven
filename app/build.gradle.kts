@@ -90,6 +90,14 @@ android {
             vcsInfo.include = false
         }
         debug {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            isDebuggable = false
+            vcsInfo.include = false
             // Sign debug with the release cert when the keystore env is present
             // (source ~/.haven-release.env), so a debuggable build installs over
             // a release-signed device build without a data-wiping uninstall.
