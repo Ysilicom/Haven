@@ -346,20 +346,5 @@ tasks.named("preBuild") {
     dependsOn(fetchUmlRootfs)
 }
 
-// Redirect CI's assembleArm64FullDebug invocation to build the 100% Release-optimized
-// variant (full R8, native -O3, no Compose debug tracking), and output to debug directory.
-tasks.matching { it.name == "assembleArm64FullDebug" }.configureEach {
-    dependsOn("assembleArm64FullRelease")
-    doLast {
-        val releaseDir = layout.buildDirectory.dir("outputs/apk/arm64Full/release").get().asFile
-        val debugDir = layout.buildDirectory.dir("outputs/apk/arm64Full/debug").get().asFile
-        debugDir.mkdirs()
-        val releaseApk = releaseDir.listFiles()?.firstOrNull { it.name.endsWith(".apk") && !it.name.contains("unaligned") }
-        if (releaseApk != null) {
-            val targetApk = File(debugDir, "haven-${android.defaultConfig.versionName}-arm64-debug.apk")
-            releaseApk.copyTo(targetApk, overwrite = true)
-            println("=== SUCCESS: Replaced debug APK with 100% Release-optimized APK: ${targetApk.name} (${targetApk.length()} bytes) ===")
-        }
-    }
-}
+
 
