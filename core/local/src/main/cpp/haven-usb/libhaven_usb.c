@@ -31,6 +31,7 @@
 #include <sys/eventfd.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <stddef.h>
 #include <sys/un.h>
 
 /* ---- hidraw ioctl ABI (define locally to avoid header skew on musl) ------ */

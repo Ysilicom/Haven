@@ -21,6 +21,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
