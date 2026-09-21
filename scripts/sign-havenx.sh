@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APK="${1:-$(find /home/zephyr/Haven/build-output -name "*.apk" 2>/dev/null | sort -V | tail -n 1)}"
+APK="${1:-$(find "$HOME/Haven/build-output" "./build-output" /home/zephyr/Haven/build-output -name "*.apk" 2>/dev/null | sort -V | tail -n 1)}"
 KS="${HAVENX_KEYSTORE:-$HOME/.config/havenx/havenx-release.jks}"
 
 # Find apksigner
