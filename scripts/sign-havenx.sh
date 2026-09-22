@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APK="${1:-$(find "$HOME/Haven/build-output" "./build-output" /home/zephyr/Haven/build-output -name "*.apk" 2>/dev/null | sort -V | tail -n 1)}"
+APK="${1:-}"
+if [ -z "$APK" ]; then
+    SEARCH_DIRS=()
+    for d in "$HOME/Haven/build-output" "./build-output" "/home/zephyr/Haven/build-output"; do
+        [ -d "$d" ] && SEARCH_DIRS+=("$d")
+    done
+    if [ ${#SEARCH_DIRS[@]} -gt 0 ]; then
+        APK="$(find "${SEARCH_DIRS[@]}" -maxdepth 3 -name "*.apk" 2>/dev/null | sort -V | tail -n 1 || true)"
+    fi
+fi
 KS="${HAVENX_KEYSTORE:-$HOME/.config/havenx/havenx-release.jks}"
 
 # Find apksigner
-APKSIGNER="${APKSIGNER:-$(find "$HOME/Android/Sdk/build-tools" -name apksigner 2>/dev/null | sort -V | tail -n 1)}"
+APKSIGNER="${APKSIGNER:-$(find "$HOME/Android/Sdk/build-tools" -name apksigner 2>/dev/null | sort -V | tail -n 1 || true)}"
 
-if [ ! -f "$APK" ]; then
-    echo "Error: APK file $APK not found." >&2
+if [ -z "$APK" ] || [ ! -f "$APK" ]; then
+    echo "Error: APK file '$APK' not found. Please provide path: $0 <path-to-apk> or place it in build-output/" >&2
     exit 1
 fi
 if [ ! -f "$KS" ]; then
