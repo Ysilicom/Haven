@@ -136,14 +136,16 @@ if [ -n "$AUTH_TOKEN" ]; then
     unzip -o "$OUTPUT_DIR/app-release.zip" -d "$OUTPUT_DIR/"
     DOWNLOADED_APK=$(find "$OUTPUT_DIR" -name "*.apk" 2>/dev/null | sort -V | tail -n 1)
 else
-    echo "ℹ️ 由于 GitHub Artifacts API 规范限制，从公开仓库下载 Actions 制品仍需认证。"
-    echo "请在浏览器打开以下页面下载编译出的 APK (app-release)："
-    echo "👉 https://github.com/$REPO/actions/runs/$RUN_ID"
-    echo ""
-    echo "下载后将 .apk 放入 $OUTPUT_DIR/ 目录。"
-    
-    # 检查是否有新放入的 APK
-    DOWNLOADED_APK=$(find "$OUTPUT_DIR" -name "*.apk" 2>/dev/null | sort -V | tail -n 1)
+    echo "🌐 未配置 Token，正在通过公开直链服务自动下载 app-release 制品..."
+    if curl -sL -f "https://nightly.link/$REPO/actions/runs/$RUN_ID/app-release.zip" -o "$OUTPUT_DIR/app-release.zip"; then
+        unzip -o "$OUTPUT_DIR/app-release.zip" -d "$OUTPUT_DIR/"
+        DOWNLOADED_APK=$(find "$OUTPUT_DIR" -name "*.apk" 2>/dev/null | sort -V | tail -n 1)
+    else
+        echo "⚠️ 自动下载未成功，请在浏览器打开以下页面下载编译出的 APK (app-release)："
+        echo "👉 https://github.com/$REPO/actions/runs/$RUN_ID"
+        echo "下载后将 .apk 放入 $OUTPUT_DIR/ 目录。"
+        DOWNLOADED_APK=$(find "$OUTPUT_DIR" -name "*.apk" 2>/dev/null | sort -V | tail -n 1)
+    fi
 fi
 
 if [ -n "$DOWNLOADED_APK" ] && [ -f "$DOWNLOADED_APK" ]; then
