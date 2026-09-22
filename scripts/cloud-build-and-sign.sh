@@ -16,6 +16,12 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
+AUTH_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || true)}}"
+CURL_AUTH=()
+if [ -n "$AUTH_TOKEN" ]; then
+    CURL_AUTH=(-H "Authorization: Bearer $AUTH_TOKEN")
+fi
+
 echo "================================================================="
 echo "  Haven 云端编译与自动化私钥重签名流程"
 echo "  仓库: $REPO"
@@ -51,7 +57,7 @@ echo ""
 echo "⏳ 正在等待 GitHub Actions 注册并启动工作流..."
 RUN_ID=""
 for i in {1..20}; do
-    RUNS_JSON=$(curl -s "https://api.github.com/repos/$REPO/actions/runs?head_sha=$TARGET_SHA")
+    RUNS_JSON=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs?head_sha=$TARGET_SHA")
     RUN_ID=$(echo "$RUNS_JSON" | jq -r '.workflow_runs[]? | select(.name=="'"$WORKFLOW_NAME"'") | .id' | head -n 1)
     if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
         RUN_URL=$(echo "$RUNS_JSON" | jq -r '.workflow_runs[]? | select(.id=='"$RUN_ID"') | .html_url')
@@ -77,12 +83,12 @@ STATUS="in_progress"
 CONCLUSION=""
 
 while true; do
-    RUN_DATA=$(curl -s "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID")
+    RUN_DATA=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID")
     STATUS=$(echo "$RUN_DATA" | jq -r '.status')
     CONCLUSION=$(echo "$RUN_DATA" | jq -r '.conclusion')
     
     # 获取各个关键 Job 的最新状态
-    JOBS_DATA=$(curl -s "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/jobs")
+    JOBS_DATA=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/jobs")
     TIME_STR=$(date +'%H:%M:%S')
     
     echo "[$TIME_STR] 总体状态: $STATUS | 结果: $CONCLUSION"
@@ -109,7 +115,7 @@ echo "🎉 云端编译成功完成！"
 echo "================================================================="
 
 # 3. 获取产物并自动下载重签名
-ARTIFACTS_DATA=$(curl -s "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts")
+ARTIFACTS_DATA=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts")
 ARTIFACT_COUNT=$(echo "$ARTIFACTS_DATA" | jq -r '.total_count')
 
 if [ "$ARTIFACT_COUNT" -eq 0 ]; then
@@ -118,8 +124,7 @@ if [ "$ARTIFACT_COUNT" -eq 0 ]; then
 fi
 
 DOWNLOADED_APK=""
-# 尝试使用 Token 下载 Artifact（如果环境变量中有 GH_TOKEN 或 GITHUB_TOKEN）
-AUTH_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+# 尝试使用 Token 下载 Artifact（如果已配置 Token 或 gh CLI 已认证）
 
 if [ -n "$AUTH_TOKEN" ]; then
     echo "🔑 检测到 GitHub Token，正在自动下载 app-release 制品..."

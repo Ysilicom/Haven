@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -2226,7 +2227,7 @@ class DesktopViewModel @Inject constructor(
     }
 
     fun sendSpiceKey(scancode: Int, pressed: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchInput {
             (activeTab.value as? DesktopTab.Spice)?.session?.sendKey(scancode, pressed)
         }
     }
@@ -2260,6 +2261,18 @@ class DesktopViewModel @Inject constructor(
 
     // --- Input forwarding (operates on active tab) ---
 
+    /**
+     * One thread, in submission order. Each press and release used to be its
+     * own `Dispatchers.IO` launch, so a release could pass its press and the
+     * desktop held the key down.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val inputDispatcher = Dispatchers.IO.limitedParallelism(1)
+
+    private fun launchInput(block: suspend () -> Unit) {
+        viewModelScope.launch(inputDispatcher) { block() }
+    }
+
     fun sendPointer(x: Int, y: Int) {
         // Mirror the latest pointer into per-tab state so the UI overlay
         // (cursor / virtual cursor seed) repaints immediately, without
@@ -2270,19 +2283,19 @@ class DesktopViewModel @Inject constructor(
             is DesktopTab.Spice -> tab._pointerPos.value = x to y
             else -> {}
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        launchInput {
             activeTab.value?.remoteDesktop?.sendMouseMove(x, y)
         }
     }
 
     fun pressButton(button: Int = 1) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchInput {
             activeTab.value?.remoteDesktop?.sendMouseButton(button, pressed = true)
         }
     }
 
     fun releaseButton(button: Int = 1) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchInput {
             activeTab.value?.remoteDesktop?.sendMouseButton(button, pressed = false)
         }
     }
@@ -2294,19 +2307,19 @@ class DesktopViewModel @Inject constructor(
             is DesktopTab.Spice -> tab._pointerPos.value = x to y
             else -> {}
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        launchInput {
             activeTab.value?.remoteDesktop?.sendMouseClick(x, y, button)
         }
     }
 
     fun sendVncKey(keySym: Int, pressed: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchInput {
             (activeTab.value as? DesktopTab.Vnc)?.client?.updateKey(keySym, pressed)
         }
     }
 
     fun typeVncKey(keySym: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchInput {
             (activeTab.value as? DesktopTab.Vnc)?.client?.type(keySym)
         }
     }
@@ -2319,22 +2332,22 @@ class DesktopViewModel @Inject constructor(
      * regardless of synth-typing fidelity).
      */
     fun typeVncText(text: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return@launch
+        launchInput {
+            val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return@launchInput
             client.copyText(text)
             client.typeText(text)
         }
     }
 
     fun sendRdpKey(scancode: Int, pressed: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchInput {
             (activeTab.value as? DesktopTab.Rdp)?.session?.sendKey(scancode, pressed)
         }
     }
 
     fun typeRdpUnicode(codepoint: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val s = (activeTab.value as? DesktopTab.Rdp)?.session ?: return@launch
+        launchInput {
+            val s = (activeTab.value as? DesktopTab.Rdp)?.session ?: return@launchInput
             s.sendUnicodeKey(codepoint, true)
             s.sendUnicodeKey(codepoint, false)
         }
@@ -2380,13 +2393,13 @@ class DesktopViewModel @Inject constructor(
     }
 
     fun scrollUp() {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchInput {
             activeTab.value?.remoteDesktop?.sendMouseWheel(deltaY = 1)
         }
     }
 
     fun scrollDown() {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchInput {
             activeTab.value?.remoteDesktop?.sendMouseWheel(deltaY = -1)
         }
     }

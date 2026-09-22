@@ -677,42 +677,30 @@ private fun RdpViewer(
         val native = event.nativeKeyEvent
         val isSoftKeyboard = (native.flags and android.view.KeyEvent.FLAG_SOFT_KEYBOARD) != 0
 
-        // #606 & soft-keyboard de-duplication:
-        // When the soft keyboard is active (or the hidden text field holds focus),
-        // printable characters must be handled solely by the text field's onValueChange
-        // to prevent duplicate keystrokes ("连打").
-        // Non-printable keys (arrows, F-keys, Enter, Tab, modifiers) have no text-commit
-        // equivalent and are forwarded directly via scancodes.
+        // #606: while the soft keyboard or the hidden field has focus, characters
+        // and backspace come only from the field's text changes. Arrows, F-keys,
+        // Enter, Tab and modifiers are still forwarded as scancodes.
         val committed = native.getUnicodeChar(native.metaState)
         val isPrintable = committed > 0 &&
             committed != '\r'.code && committed != '\n'.code && committed != '\t'.code
 
-        if (isSoftKeyboard || (fieldFocused && isPrintable)) {
-            if (isPrintable) {
-                true
-            } else {
-                val scancode = androidKeyToScancode(event.key)
-                if (scancode != null) {
-                    when (event.type) {
-                        KeyEventType.KeyDown -> onKeyDown(scancode)
-                        KeyEventType.KeyUp -> onKeyUp(scancode)
-                    }
-                    true
-                } else {
-                    false
-                }
+        // While the hidden field is the input path, letters, space and
+        // backspace belong to it. An IME composition key often has no unicode
+        // value, and forwarding that scancode typed the pinyin on the remote
+        // and sent backspace a second time.
+        if ((isSoftKeyboard || fieldFocused) && (isPrintable || imeOwnsRdpKey(event.key))) {
+            return@handleHardwareKey true
+        }
+
+        val scancode = androidKeyToScancode(event.key)
+        if (scancode != null) {
+            when (event.type) {
+                KeyEventType.KeyDown -> onKeyDown(scancode)
+                KeyEventType.KeyUp -> onKeyUp(scancode)
             }
+            true
         } else {
-            val scancode = androidKeyToScancode(event.key)
-            if (scancode != null) {
-                when (event.type) {
-                    KeyEventType.KeyDown -> onKeyDown(scancode)
-                    KeyEventType.KeyUp -> onKeyUp(scancode)
-                }
-                true
-            } else {
-                false
-            }
+            false
         }
     }
     LaunchedEffect(Unit) { hardwareKeyFocus.requestFocus() }
@@ -1795,6 +1783,20 @@ private enum class OrientationMode(
  */
 fun cycleRdpOrientation(current: Int): Int =
     OrientationMode.fromActivityValue(current).next().activityValue
+
+/** Letters, digits, punctuation, space and backspace. The text field commits these. */
+internal fun imeOwnsRdpKey(key: Key): Boolean = when (key) {
+    Key.A, Key.B, Key.C, Key.D, Key.E, Key.F, Key.G, Key.H, Key.I, Key.J,
+    Key.K, Key.L, Key.M, Key.N, Key.O, Key.P, Key.Q, Key.R, Key.S, Key.T,
+    Key.U, Key.V, Key.W, Key.X, Key.Y, Key.Z,
+    Key.One, Key.Two, Key.Three, Key.Four, Key.Five,
+    Key.Six, Key.Seven, Key.Eight, Key.Nine, Key.Zero,
+    Key.Spacebar, Key.Backspace, Key.Delete,
+    Key.Grave, Key.Minus, Key.Equals, Key.LeftBracket, Key.RightBracket,
+    Key.Backslash, Key.Semicolon, Key.Apostrophe, Key.Comma, Key.Period, Key.Slash,
+    -> true
+    else -> false
+}
 
 internal fun androidKeyToScancode(key: Key): Int? = when (key) {
     Key.Enter -> SC_RETURN
