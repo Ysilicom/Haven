@@ -207,6 +207,7 @@ class McpServer @Inject constructor(
     private val totpSecretRepository: sh.haven.core.data.repository.TotpSecretRepository,
     private val ageIdentityRepository: sh.haven.core.data.repository.AgeIdentityRepository,
     private val desktopSessionRegistry: sh.haven.core.data.desktop.DesktopSessionRegistry,
+    private val aiRouteRegistry: sh.haven.core.openai.AiRouteRegistry,
     private val usbBroker: sh.haven.core.usb.UsbBroker,
     private val usbIpServer: sh.haven.core.usb.UsbIpServer,
     private val usbDriveVmManager: sh.haven.app.usb.UsbDriveVmManager,
@@ -218,6 +219,11 @@ class McpServer @Inject constructor(
     private val btSerialSessionManager: sh.haven.core.btserial.BtSerialSessionManager,
     private val bleSerialSessionManager: sh.haven.core.bleserial.BleSerialSessionManager,
     private val usbSerialSessionManager: sh.haven.core.usbserial.UsbSerialSessionManager,
+    // OpenAI endpoint (openai_* tools): the session manager holding connect-time
+    // model caches, plus the tunnel resolver so an MCP chat on a tunnel-routed
+    // profile dials through the tunnel (fail closed) like the connect path does.
+    private val openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager,
+    private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver,
     // Capture + drive Haven's OWN rendered UI (self-hosting loop, §1a).
     // Registered with the foreground activity by MainActivity.onResume.
     private val havenUiBridge: HavenUiBridge,
@@ -473,6 +479,7 @@ class McpServer @Inject constructor(
         totpSecretRepository = totpSecretRepository,
         ageIdentityRepository = ageIdentityRepository,
         desktopSessionRegistry = desktopSessionRegistry,
+        aiRouteRegistry = aiRouteRegistry,
         usbBroker = usbBroker,
         usbIpServer = usbIpServer,
         usbDriveVmManager = usbDriveVmManager,
@@ -485,6 +492,8 @@ class McpServer @Inject constructor(
         btSerialSessionManager = btSerialSessionManager,
         bleSerialSessionManager = bleSerialSessionManager,
         usbSerialSessionManager = usbSerialSessionManager,
+        openAiSessionManager = openAiSessionManager,
+        tunnelResolver = tunnelResolver,
         headlessSshExec = headlessSshExec,
         pendingAuthPromptHolder = pendingAuthPromptHolder,
         sessionSelectionHolder = sessionSelectionHolder,

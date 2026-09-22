@@ -108,6 +108,7 @@ internal class McpTools(
     private val totpSecretRepository: sh.haven.core.data.repository.TotpSecretRepository,
     private val ageIdentityRepository: sh.haven.core.data.repository.AgeIdentityRepository,
     private val desktopSessionRegistry: sh.haven.core.data.desktop.DesktopSessionRegistry,
+    private val aiRouteRegistry: sh.haven.core.openai.AiRouteRegistry,
     private val usbBroker: sh.haven.core.usb.UsbBroker,
     private val usbIpServer: sh.haven.core.usb.UsbIpServer,
     private val usbDriveVmManager: sh.haven.app.usb.UsbDriveVmManager,
@@ -126,6 +127,13 @@ internal class McpTools(
     private val btSerialSessionManager: sh.haven.core.btserial.BtSerialSessionManager? = null,
     private val bleSerialSessionManager: sh.haven.core.bleserial.BleSerialSessionManager? = null,
     private val usbSerialSessionManager: sh.haven.core.usbserial.UsbSerialSessionManager? = null,
+    // OpenAI-endpoint session manager + tunnel resolver for the openai_* tools
+    // (openai_list_models / openai_chat). Nullable + defaulted like the serial
+    // managers above so manual McpTools test constructions compile unchanged;
+    // when either is absent the tools simply don't register. McpServer passes
+    // the real Hilt singletons.
+    private val openAiSessionManager: sh.haven.core.openai.OpenAiSessionManager? = null,
+    private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver? = null,
     // One-shot exec on a saved SSH profile (run_command, #367). Nullable +
     // defaulted so the many manual McpTools constructions in unit tests that
     // don't exercise it compile unchanged; McpServer always passes the real
@@ -296,6 +304,21 @@ internal class McpTools(
         connectionRepository = connectionRepository,
         agentUiCommandBus = agentUiCommandBus,
     )
+    // Null when the OpenAI session manager (or its tunnel resolver) isn't
+    // supplied — e.g. a manual test construction — in which case no openai_*
+    // tools register.
+    private val openAiProvider: OpenAiToolProvider? =
+        if (openAiSessionManager != null && tunnelResolver != null) {
+            OpenAiToolProvider(
+                ctx = toolContext,
+                openAiSessionManager = openAiSessionManager,
+                connectionRepository = connectionRepository,
+                openAiClient = sh.haven.core.openai.OpenAiClient(),
+                tunnelResolver = tunnelResolver,
+            )
+        } else {
+            null
+        }
     private val serialBridgeProvider = SerialBridgeToolProvider(
         btSerial = btSerialSessionManager,
         bleSerial = bleSerialSessionManager,
@@ -315,6 +338,21 @@ internal class McpTools(
                 e.message
             }
         },
+    )
+    // GPS broker tools: precise fixes, continuous logging, GPS-disciplined
+    // NTP. Shares the same Shizuku grant lambda as the senses provider.
+    private val gpsProvider = GpsToolProvider(
+        context = context,
+        shizukuGrant = { permission ->
+            try {
+                runShizukuOrThrow(permission, "pm grant")
+                null
+            } catch (e: McpError) {
+                e.message
+            }
+        },
+        preferencesRepository = preferencesRepository,
+        localSessionManager = localSessionManager,
     )
     // Inbound presence: the notification-listener ring. Null-on-failure
     // exec so the tool falls back to the Settings-path message when
@@ -365,8 +403,9 @@ internal class McpTools(
         toolsPart1() + toolsPart2() + toolsPart3() + toolsPart4() +
             keyStoreProvider.tools() + tunnelProvider.tools() + sshKeyProvider.tools() +
             hostKeyProvider.tools() + stepCaProvider.tools() + rcloneProvider.tools() + usbProvider.tools() +
-            desktopProvider.tools() + mailProvider.tools() + serialBridgeProvider.tools() +
-            sensesProvider.tools() + notificationProvider.tools() + reflexProvider.tools() +
+            desktopProvider.tools() + mailProvider.tools() + (openAiProvider?.tools() ?: emptyMap()) +
+                serialBridgeProvider.tools() +
+            sensesProvider.tools() + gpsProvider.tools() + notificationProvider.tools() + reflexProvider.tools() +
             crossProtocolProvider.tools() + credentialProvider.tools()
 
     private fun toolsPart1(): Map<String, ToolHandler> = linkedMapOf(
@@ -402,7 +441,7 @@ internal class McpTools(
         ) { args -> unpairMcpClient(args) },
 
         "list_connections" to ToolHandler(
-            description = "List saved connection profiles (SSH, Mosh, VNC, RDP, SMB, rclone, local, Reticulum). Secrets like passwords and keys are redacted. SSH profiles also report `sshOptions` (the ssh_config-style lines set on the profile) and `sshEngine` — \"jsch\" (default) or \"sshlib\" (the experimental whole-connection engine, opted into with the 'HavenSshEngine sshlib' directive) — so an agent that sets the engine can confirm which one a profile is actually on.",
+            description = "List saved connection profiles (SSH, Mosh, VNC, RDP, SMB, rclone, local, Reticulum, OPENAI). Secrets like passwords and keys are redacted. SSH profiles also report `sshOptions` (the ssh_config-style lines set on the profile) and `sshEngine` — \"jsch\" (default) or \"sshlib\" (the experimental whole-connection engine, opted into with the 'HavenSshEngine sshlib' directive) — so an agent that sets the engine can confirm which one a profile is actually on.",
             inputSchema = emptyObjectSchema(),
         ) { _ -> listConnections() },
 
@@ -414,7 +453,7 @@ internal class McpTools(
         ) { args -> readExitedSession(args) },
 
         "list_sessions" to ToolHandler(
-            description = "List currently registered sessions across all transports (ssh, mosh, et, reticulum, rdp, smb, local, mail, and Bluetooth/BLE/USB serial) with sessionId, profileId, label, status (connecting, connected, reconnecting, disconnected, error), transport, and isAgentRepl — a screen heuristic (Claude Code TUI chrome in the bottom lines) marking which terminal session is an agent REPL, so a conversation peer can be picked without guessing; null when the session has no attached terminal tab. SSH sessions additionally include sessionManager, chosenSessionName (the stable tmux/zellij identity that survives reconnects), channel state, jump-session linkage, and active port forwards.",
+            description = "List currently registered sessions across all transports (ssh, mosh, et, reticulum, rdp, smb, local, mail, openai, and Bluetooth/BLE/USB serial) with sessionId, profileId, label, status (connecting, connected, reconnecting, disconnected, error), transport, and isAgentRepl — a screen heuristic (Claude Code TUI chrome in the bottom lines) marking which terminal session is an agent REPL, so a conversation peer can be picked without guessing; null when the session has no attached terminal tab. SSH sessions additionally include sessionManager, chosenSessionName (the stable tmux/zellij identity that survives reconnects), channel state, jump-session linkage, and active port forwards.",
             inputSchema = emptyObjectSchema(),
         ) { _ -> listSessions() },
 
@@ -700,7 +739,7 @@ internal class McpTools(
         ) { _ -> readClipboard() },
 
         "get_preference" to ToolHandler(
-            description = "Read a Haven user preference by key. Whitelisted keys: terminal_scrollback_rows, terminal_tap_to_position_cursor, terminal_font_size, terminal_color_scheme, terminal_auto_switch_scheme, terminal_light_color_scheme, terminal_dark_color_scheme, terminal_locale, mouse_input_enabled, terminal_right_click, terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs; default true), mcp_tunnel_endpoint_profile_id, mcp_wireguard_enabled, mcp_lan_bind_enabled, mcp_wireguard_tunnel_config_id, usb_guest_exposure_enabled, connection_logging_enabled, verbose_logging_enabled, remap_low_ports (#300 proot launch toggle), share_storage_with_guest (#301 proot launch toggle), bind_android_system (#304 proot launch toggle), proot_dns_mode (#446 - system|public|custom), proot_dns_servers (custom nameservers), toolbar_layout (string — the terminal keyboard toolbar layout as JSON; see set_preference for the shape), custom_desktop_command (string — the Custom (X11) desktop's session command), update_check_enabled (bool — #578 opt-in launch-time update check; off by default, and inert on a copy not signed with the GitHub-release key), update_check_last_run_ms (long — epoch ms of the last launch-time check; the once-a-day throttle is measured from it), update_check_last_notified_version (string — the version the user was last notified about; blank if never). Returns { key, value } where value's type follows the preference's type (int / boolean / string). Colour-scheme values are TerminalColorScheme enum names.",
+            description = "Read a Haven user preference by key. Whitelisted keys: terminal_scrollback_rows, terminal_tap_to_position_cursor, terminal_font_size, terminal_color_scheme, terminal_auto_switch_scheme, terminal_light_color_scheme, terminal_dark_color_scheme, terminal_locale, mouse_input_enabled, terminal_right_click, terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs; default true), mcp_tunnel_endpoint_profile_id, mcp_wireguard_enabled, mcp_lan_bind_enabled, mcp_wireguard_tunnel_config_id, usb_guest_exposure_enabled, gps_guest_exposure_enabled, connection_logging_enabled, verbose_logging_enabled, remap_low_ports (#300 proot launch toggle), share_storage_with_guest (#301 proot launch toggle), bind_android_system (#304 proot launch toggle), proot_dns_mode (#446 - system|public|custom), proot_dns_servers (custom nameservers), toolbar_layout (string — the terminal keyboard toolbar layout as JSON; see set_preference for the shape), custom_desktop_command (string — the Custom (X11) desktop's session command), update_check_enabled (bool — #578 opt-in launch-time update check; off by default, and inert on a copy not signed with the GitHub-release key), update_check_last_run_ms (long — epoch ms of the last launch-time check; the once-a-day throttle is measured from it), update_check_last_notified_version (string — the version the user was last notified about; blank if never). Returns { key, value } where value's type follows the preference's type (int / boolean / string). Colour-scheme values are TerminalColorScheme enum names.",
             inputSchema = objectSchema {
                 string("key", "Preference key (see whitelist in description).", required = true)
             },
@@ -905,7 +944,7 @@ internal class McpTools(
         ) { args -> writeClipboard(args) },
 
         "set_preference" to ToolHandler(
-            description = "Write a Haven user preference. Whitelisted keys (and their types): terminal_scrollback_rows (int 100..25000), terminal_tap_to_position_cursor (bool), terminal_font_size (int 8..32), mouse_input_enabled (bool), terminal_right_click (bool), terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs), terminal_color_scheme (string — a TerminalColorScheme enum name, e.g. HAVEN, DRACULA, NORD, GRUVBOX; case-insensitive), terminal_auto_switch_scheme (bool — when true the active scheme follows system light/dark via the light/dark keys), terminal_light_color_scheme (string scheme name), terminal_dark_color_scheme (string scheme name), terminal_background_opacity (float 0.0..1.0 — below 1.0 the terminal renders over the device wallpaper), terminal_locale (string, e.g. zh_CN.UTF-8 — exported to local terminal sessions as LANG/LC_ALL; glibc distros need the locale generated first), mcp_tunnel_endpoint_profile_id (string SSH profile id, empty to clear), mcp_wireguard_enabled (bool), mcp_lan_bind_enabled (bool — also bind the device Wi-Fi/LAN address for direct same-network reach), mcp_wireguard_tunnel_config_id (string tunnel config id the MCP server keeps up as its WG carrier, empty to clear), usb_guest_exposure_enabled (bool — master gate for usb_attach_to_guest), connection_logging_enabled (bool — audit-log connection lifecycle events to Settings → View connection log; off by default; enable before reproducing a connection issue, then read get_connection_log), verbose_logging_enabled (bool - per-session transport tracing, captured into each ConnectionLog entry's verboseLog; off by default. Needed AS WELL AS connection_logging_enabled: the RDP decode breakdown, the negotiated graphics capabilities and the discarded-bitmap detail exist nowhere else), gpu_use_venus (bool — experimental venus+zink GPU stack for accelerated desktops; off = virgl/virpipe), remap_low_ports (bool — #300 proot launch toggle: remap guest privileged ports +2000), share_storage_with_guest (bool — #301 proot launch toggle: mount /storage + /sdcard into the local guest; default on), bind_android_system (bool — #304 proot launch toggle: bind Android's read-only /system, /vendor, /apex, /product, /system_ext, /odm into the guest so it can run Android native binaries like getprop/toybox; default off, exposes device internals), proot_dns_mode (string - #446: which resolvers the local Linux guest gets in /etc/resolv.conf. \"system\" (default) uses the network's own resolvers, \"public\" uses Google 8.8.8.8 + Cloudflare 1.1.1.1 (the old hardcoded pair), \"custom\" uses proot_dns_servers. Networks that block outbound port 53 to anything but their own resolver make \"public\" fail silently - package installs just hang), proot_dns_servers (string - comma/space separated IP literals for \"custom\"; hostnames are rejected because resolv.conf has no way to resolve them), toolbar_layout (string — the terminal keyboard toolbar as JSON: a 2-element array of rows, each row an array whose elements are either a built-in key id string (\"esc\", \"paste\", \"text_input\", \"arrow_up\", \"ctrl\", \"home\", … — see ToolbarKey) or a custom-key object {\"label\":\"…\",\"send\":\"…\"}; set validates against ToolbarLayout and replaces the WHOLE layout, so get_preference it first, edit, and write it back — e.g. add \"text_input\" to a row to surface the floating-text-input key), custom_desktop_command (string — the Custom (X11) desktop session command run at its next start; the command IS the session: when it exits the desktop stops, and a command that dies at startup surfaces its output in the desktop row's error state), update_check_enabled (bool — #578: look for a newer GitHub release when Haven opens, at most once an hour. Off by default. Turning it ON is what arms the launch-time path; check_for_update runs a check right now regardless)), update_check_last_run_ms (long epoch ms — set to 0 to CLEAR the once-an-hour throttle), update_check_last_notified_version (string — set to \"\" to CLEAR the already-told-you dedup). Those two exist so the launch path can be exercised for real: clear whichever gate you are testing, restart Haven, and watch checkOnLaunch run. check_for_update deliberately cannot substitute — it runs the on-demand check, which posts no notification and touches neither gate. Takes effect on the next local session/command. Returns { key, value }.",
+            description = "Write a Haven user preference. Whitelisted keys (and their types): terminal_scrollback_rows (int 100..25000), terminal_tap_to_position_cursor (bool), terminal_font_size (int 8..32), mouse_input_enabled (bool), terminal_right_click (bool), terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs), terminal_color_scheme (string — a TerminalColorScheme enum name, e.g. HAVEN, DRACULA, NORD, GRUVBOX; case-insensitive), terminal_auto_switch_scheme (bool — when true the active scheme follows system light/dark via the light/dark keys), terminal_light_color_scheme (string scheme name), terminal_dark_color_scheme (string scheme name), terminal_background_opacity (float 0.0..1.0 — below 1.0 the terminal renders over the device wallpaper), terminal_locale (string, e.g. zh_CN.UTF-8 — exported to local terminal sessions as LANG/LC_ALL; glibc distros need the locale generated first), mcp_tunnel_endpoint_profile_id (string SSH profile id, empty to clear), mcp_wireguard_enabled (bool), mcp_lan_bind_enabled (bool — also bind the device Wi-Fi/LAN address for direct same-network reach), mcp_wireguard_tunnel_config_id (string tunnel config id the MCP server keeps up as its WG carrier, empty to clear), usb_guest_exposure_enabled (bool — master gate for usb_attach_to_guest), gps_guest_exposure_enabled (bool — master gate for attach_gps_to_guest), connection_logging_enabled (bool — audit-log connection lifecycle events to Settings → View connection log; off by default; enable before reproducing a connection issue, then read get_connection_log), verbose_logging_enabled (bool - per-session transport tracing, captured into each ConnectionLog entry's verboseLog; off by default. Needed AS WELL AS connection_logging_enabled: the RDP decode breakdown, the negotiated graphics capabilities and the discarded-bitmap detail exist nowhere else), gpu_use_venus (bool — experimental venus+zink GPU stack for accelerated desktops; off = virgl/virpipe), remap_low_ports (bool — #300 proot launch toggle: remap guest privileged ports +2000), share_storage_with_guest (bool — #301 proot launch toggle: mount /storage + /sdcard into the local guest; default on), bind_android_system (bool — #304 proot launch toggle: bind Android's read-only /system, /vendor, /apex, /product, /system_ext, /odm into the guest so it can run Android native binaries like getprop/toybox; default off, exposes device internals), proot_dns_mode (string - #446: which resolvers the local Linux guest gets in /etc/resolv.conf. \"system\" (default) uses the network's own resolvers, \"public\" uses Google 8.8.8.8 + Cloudflare 1.1.1.1 (the old hardcoded pair), \"custom\" uses proot_dns_servers. Networks that block outbound port 53 to anything but their own resolver make \"public\" fail silently - package installs just hang), proot_dns_servers (string - comma/space separated IP literals for \"custom\"; hostnames are rejected because resolv.conf has no way to resolve them), toolbar_layout (string — the terminal keyboard toolbar as JSON: a 2-element array of rows, each row an array whose elements are either a built-in key id string (\"esc\", \"paste\", \"text_input\", \"arrow_up\", \"ctrl\", \"home\", … — see ToolbarKey) or a custom-key object {\"label\":\"…\",\"send\":\"…\"}; set validates against ToolbarLayout and replaces the WHOLE layout, so get_preference it first, edit, and write it back — e.g. add \"text_input\" to a row to surface the floating-text-input key), custom_desktop_command (string — the Custom (X11) desktop session command run at its next start; the command IS the session: when it exits the desktop stops, and a command that dies at startup surfaces its output in the desktop row's error state), update_check_enabled (bool — #578: look for a newer GitHub release when Haven opens, at most once an hour. Off by default. Turning it ON is what arms the launch-time path; check_for_update runs a check right now regardless)), update_check_last_run_ms (long epoch ms — set to 0 to CLEAR the once-an-hour throttle), update_check_last_notified_version (string — set to \"\" to CLEAR the already-told-you dedup). Those two exist so the launch path can be exercised for real: clear whichever gate you are testing, restart Haven, and watch checkOnLaunch run. check_for_update deliberately cannot substitute — it runs the on-demand check, which posts no notification and touches neither gate. Takes effect on the next local session/command. Returns { key, value }.",
             inputSchema = objectSchema {
                 string("key", "Preference key (see whitelist).", required = true)
                 property("value", JSONObject().put("description", "New value. Type must match the key's type — int for the *_rows / *_size keys, bool for the rest."), required = true)
@@ -1592,7 +1631,7 @@ internal class McpTools(
         ) { args -> setProfileRouting(args) },
 
         "create_connection" to ToolHandler(
-            description = "Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, SPICE, EMAIL, RETICULUM. SSH-family fields: username (required), password (optional, stored), keyId (optional — references list_ssh_keys), ignoreSavedKeys (force password-only auth, never offer saved keys), useMosh (turn an SSH profile into a Mosh profile), sessionManager (optional: TMUX | ZELLIJ | SCREEN | BYOBU | HERDR — attach through that multiplexer; omit for a plain shell), remoteCommand (run a command via an SSH exec request instead of a login shell — e.g. 'tmux new -A -s work' to attach-or-create that session before shell startup files run) + requestPty (PTY for it, default true), bindAddress (local address the outgoing SSH socket binds to, ssh -b — direct connections only). SMB: smbShare (required), username + password, smbDomain. VNC: vncUsername, vncPassword, vncPort, and vncSshForward + vncSshProfileId to tunnel VNC through a saved SSH profile. RDP: rdpUsername (required), rdpPassword, rdpDomain, rdpPort. SPICE: spicePassword (optional ticket — no username/domain), spicePort (default 5900), and spiceSshForward + spiceSshProfileId to tunnel SPICE through a saved SSH profile. EMAIL: emailProvider (\"imap\" default, or \"proton\"); username = the email address; password = the account/app-password; for IMAP set emailServer (required) + emailPort (993) + emailSmtpPort (465) + emailTls (true), plus emailSmtpServer when the SMTP host differs (e.g. smtp.gmail.com); for Proton add emailMailboxPassword if two-password mode. EMAIL host is optional (the tunnel-ingress/bastion SPA/knock guards), not the mail server. BTSERIAL (Bluetooth-serial console, #406): host = the paired device's Bluetooth MAC (from list_bluetooth_devices); no other fields. The device must already be paired in Android Settings. BLESERIAL (Bluetooth-LE-serial console — Nordic UART Service / HM-10): host = the BLE peripheral's MAC; no other fields. It needn't be paired — scan-and-pick in the editor; the GATT service/characteristics are auto-detected (NUS 6E400001…, then HM-10 FFE0/FFE1). USBSERIAL (USB-serial console, #408 — Arduino / Duet3D G-code / ESP32 / USB-TTL): host = the device's vendorId:productId hex, e.g. 1a86:7523, from list_usb_devices; usbBaudRate = baud (default 115200); usbDataBits/usbParity/usbStopBits/usbFlowControl set the rest of the line format (default 8N1, no flow control). Plug the adapter in first; connect_profile pops the Android USB-permission prompt. Chipsets: CDC-ACM, CH34x, FTDI, CP21xx, Prolific. RETICULUM: destinationHash (required, 32 hex chars) is the address; reticulumHost + reticulumPort are only how this phone reaches the mesh, defaulting to 127.0.0.1:37428 which is a Sideband or Columba shared instance on this device — any other host is a TCP gateway. reticulumNetworkName + reticulumPassphrase set IFAC on an authenticated gateway. The new profile id is returned for follow-up calls (set_profile_routing, connect_profile). For rclone / local create the profile in the UI — those need an OAuth flow the agent can't drive.",
+            description = "Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, SPICE, EMAIL, RETICULUM. SSH-family fields: username (required), password (optional, stored), keyId (optional — references list_ssh_keys), ignoreSavedKeys (force password-only auth, never offer saved keys), useMosh (turn an SSH profile into a Mosh profile), sessionManager (optional: TMUX | ZELLIJ | SCREEN | BYOBU | HERDR | PSMUX — attach through that multiplexer; omit for a plain shell), remoteCommand (run a command via an SSH exec request instead of a login shell — e.g. 'tmux new -A -s work' to attach-or-create that session before shell startup files run) + requestPty (PTY for it, default true), bindAddress (local address the outgoing SSH socket binds to, ssh -b — direct connections only). SMB: smbShare (required), username + password, smbDomain. VNC: vncUsername, vncPassword, vncPort, and vncSshForward + vncSshProfileId to tunnel VNC through a saved SSH profile. RDP: rdpUsername (required), rdpPassword, rdpDomain, rdpPort. SPICE: spicePassword (optional ticket — no username/domain), spicePort (default 5900), and spiceSshForward + spiceSshProfileId to tunnel SPICE through a saved SSH profile. EMAIL: emailProvider (\"imap\" default, or \"proton\"); username = the email address; password = the account/app-password; for IMAP set emailServer (required) + emailPort (993) + emailSmtpPort (465) + emailTls (true), plus emailSmtpServer when the SMTP host differs (e.g. smtp.gmail.com); for Proton add emailMailboxPassword if two-password mode. EMAIL host is optional (the tunnel-ingress/bastion SPA/knock guards), not the mail server. OPENAI (OpenAI-compatible endpoint, e.g. llama-server or CLIProxyAPI): host = server IP/hostname (a full http:// URL also works), port = TCP port (default 80), optional password arg = the API key (sent as a Bearer token; omit for keyless servers), openaiPathPrefix = optional path inserted before /v1 (e.g. \"/api\"). Connect verifies via GET /v1/models; chat via the chat screen or openai_chat. BTSERIAL (Bluetooth-serial console, #406): host = the paired device's Bluetooth MAC (from list_bluetooth_devices); no other fields. The device must already be paired in Android Settings. BLESERIAL (Bluetooth-LE-serial console — Nordic UART Service / HM-10): host = the BLE peripheral's MAC; no other fields. It needn't be paired — scan-and-pick in the editor; the GATT service/characteristics are auto-detected (NUS 6E400001…, then HM-10 FFE0/FFE1). USBSERIAL (USB-serial console, #408 — Arduino / Duet3D G-code / ESP32 / USB-TTL): host = the device's vendorId:productId hex, e.g. 1a86:7523, from list_usb_devices; usbBaudRate = baud (default 115200); usbDataBits/usbParity/usbStopBits/usbFlowControl set the rest of the line format (default 8N1, no flow control). Plug the adapter in first; connect_profile pops the Android USB-permission prompt. Chipsets: CDC-ACM, CH34x, FTDI, CP21xx, Prolific. RETICULUM: destinationHash (required, 32 hex chars) is the address; reticulumHost + reticulumPort are only how this phone reaches the mesh, defaulting to 127.0.0.1:37428 which is a Sideband or Columba shared instance on this device — any other host is a TCP gateway. reticulumNetworkName + reticulumPassphrase set IFAC on an authenticated gateway. The new profile id is returned for follow-up calls (set_profile_routing, connect_profile). For rclone / local create the profile in the UI — those need an OAuth flow the agent can't drive.",
             inputSchema = objectSchema {
                 string("label", "User-facing label.", required = true)
                 string("connectionType", "SSH | SMB | VNC | RDP | SPICE | EMAIL | BTSERIAL | BLESERIAL | USBSERIAL | RETICULUM | GUEST.", required = true)
@@ -1622,6 +1661,8 @@ internal class McpTools(
                 integer("emailSmtpPort", "EMAIL/imap only: SMTP port. Default 465.")
                 boolean("emailTls", "EMAIL/imap only: implicit TLS (SSL). Default true.")
                 string("emailMailboxPassword", "EMAIL/proton only: separate mailbox password for two-password-mode accounts.")
+                string("openaiPathPrefix", "OPENAI only: optional path prefix inserted before /v1 (e.g. \"/api\" for CLIProxyAPI).")
+                string("protocol", "OPENAI only: wire protocol — OPENAI (default, OpenAI-compatible /v1/chat/completions), OLLAMA (native /api), ANTHROPIC (Messages API /v1/messages), or GEMINI (generativelanguage /v1beta/models/{model}:generateContent).")
                 string("tunnelConfigId", "Optional: route the new profile through this tunnel (from list_tunnels). Equivalent to follow-up set_profile_routing.")
                 boolean("tunnelOnly", "SSH only: tunnel-only mode (#150). When true, the profile brings up the SSH transport and registers port forwards but does not open a terminal. Default false. Pair with auto_reconnect for autossh-style keepalive.")
                 boolean("useMosh", "SSH only: when true, the profile uses Mosh on top of the SSH bootstrap. SSH execs `mosh-server new -s`, parses MOSH CONNECT, then the UDP transport takes over. Default false.")
@@ -1663,7 +1704,7 @@ internal class McpTools(
         ) { args -> createConnection(args) },
 
         "update_connection" to ToolHandler(
-            description = "Edit fields on an existing connection profile (load → change → save). Pass profileId (required) plus only the fields you want to change — anything omitted is left as-is. Common SSH-family fields: label, host, port, username, password (stored, mapped to the profile's transport), keyId, ignoreSavedKeys (force password-only auth), useMosh, forwardAgent, remoteCommand (SSH exec instead of a login shell; empty string clears) + requestPty, bindAddress (ssh -b; direct connections only, empty string clears). Desktop tunnels: vncSshForward + vncSshProfileId, rdpSshForward + rdpSshProfileId, spiceSshForward + spiceSshProfileId, smbSshForward + smbSshProfileId. USB/IP auto-forward: usbForwardVidPid (export a phone-attached USB device to this host on every connect). Passwords are stored encrypted and never echoed back. For routing/proxy use set_profile_routing; for port-knock/SPA use set_port_knock/set_spa. Returns the updated profile (secrets redacted).",
+            description = "Edit fields on an existing connection profile (load → change → save). Pass profileId (required) plus only the fields you want to change — anything omitted is left as-is. Common SSH-family fields: label, host, port, username, password (stored, mapped to the profile's transport), keyId, ignoreSavedKeys (force password-only auth), useMosh, forwardAgent, remoteCommand (SSH exec instead of a login shell; empty string clears) + requestPty, bindAddress (ssh -b; direct connections only, empty string clears). Desktop tunnels: vncSshForward + vncSshProfileId, rdpSshForward + rdpSshProfileId, spiceSshForward + spiceSshProfileId, smbSshForward + smbSshProfileId. USB/IP auto-forward: usbForwardVidPid (export a phone-attached USB device to this host on every connect). Passwords are stored encrypted and never echoed back. OPENAI: password maps to the API key (empty string clears). For routing/proxy use set_profile_routing; for port-knock/SPA use set_port_knock/set_spa. Returns the updated profile (secrets redacted).",
             inputSchema = objectSchema {
                 string("profileId", "Profile id from list_connections.", required = true)
                 string("label", "New user-facing label.")
@@ -1682,6 +1723,8 @@ internal class McpTools(
                 boolean("forwardAgent", "SSH only: enable SSH agent forwarding. Keys with a stored passphrase (or none) are exposed to the remote's ssh-agent socket (#377).")
                 boolean("vncSshForward", "VNC only: tunnel through a saved SSH profile (set vncSshProfileId).")
                 string("vncSshProfileId", "VNC only: SSH profile id to tunnel through. Empty string clears.")
+                string("openaiPathPrefix", "OPENAI only: path prefix inserted before /v1 (e.g. \"/api\"). Empty string clears.")
+                string("protocol", "OPENAI only: wire protocol — OPENAI (default), OLLAMA, ANTHROPIC, or GEMINI. Empty string clears (back to OPENAI).")
                 boolean("rdpSshForward", "RDP only: tunnel through a saved SSH profile (set rdpSshProfileId).")
                 string("rdpSshProfileId", "RDP only: SSH profile id to tunnel through. Empty string clears.")
                 boolean("smbSshForward", "SMB only: tunnel through a saved SSH profile (set smbSshProfileId).")
@@ -2290,6 +2333,14 @@ internal class McpTools(
         if (!p.rdpDomain.isNullOrEmpty()) put("rdpDomain", p.rdpDomain)
         // SMB
         if (!p.smbShare.isNullOrEmpty()) put("smbShare", p.smbShare)
+        // OPENAI — baseUrl is the dial target (host[+port] + prefix); the key
+        // itself is never echoed back, only its presence.
+        if (p.isOpenai) {
+            put("baseUrl", p.openaiBaseUrl)
+            if (!p.openaiPathPrefix.isNullOrEmpty()) put("pathPrefix", p.openaiPathPrefix)
+            put("hasApiKey", !p.openaiApiKey.isNullOrEmpty())
+            put("protocol", p.aiProtocol?.takeIf { it.isNotBlank() } ?: "OPENAI")
+        }
         // Reticulum — without these a profile the agent just created reads back
         // as an address-less RETICULUM row it cannot tell apart from any other.
         if (p.isReticulum) {
@@ -2647,6 +2698,24 @@ internal class McpTools(
             },
         )
         val sourceUrl = "http://127.0.0.1:$streamPort$urlPath"
+        // Audit-log the transcode outcome like the Files→Stream flow does;
+        // previously an MCP-triggered stream that failed left nothing to read.
+        hlsStreamServer.onExit = { exitCode, stderr ->
+            val status = if (exitCode == 0)
+                sh.haven.core.data.db.entities.ConnectionLog.Status.CONNECTED
+            else
+                sh.haven.core.data.db.entities.ConnectionLog.Status.FAILED
+            runCatching {
+                backgroundScope.launch {
+                    connectionLogRepository.logEvent(
+                        profileId,
+                        status,
+                        details = "▶ stream: ${path.substringAfterLast('/')} — ffmpeg exit $exitCode",
+                        verboseLog = stderr.takeLast(2000),
+                    )
+                }
+            }
+        }
         val hlsPort = hlsStreamServer.startFile(sourceUrl)
         JSONObject().apply {
             put("profileId", profileId)
@@ -3404,6 +3473,13 @@ internal class McpTools(
         val profileId = args.optString("profileId").ifEmpty {
             throw McpError(-32602, "Missing required argument: profileId")
         }
+        // AI route teardown FIRST, matching ConnectionsViewModel.disconnect's
+        // order: release the routes this profile owns (it's the endpoint) and
+        // cascade the ones it carries (it's the carrier) while the carrier's
+        // SSH client is still alive to remove the LOCAL forward from. Coming
+        // after the registry disconnect would leave the forward LISTENing on
+        // a session that survives (#observed on the routed-chat verification).
+        aiRouteRegistry.teardownFor(profileId)
         // Cross-transport hammer; the registry already knows which
         // transports have sessions for this profile and only acts where
         // there's something to do, so it's safe to call unconditionally.
@@ -3845,6 +3921,10 @@ internal class McpTools(
         // Master opt-in for exposing USB devices to the proot guest (gates
         // usb_attach_to_guest). MCP-drivable so integration tests can flip it.
         "usb_guest_exposure_enabled",
+        // Master opt-in for exposing the phone's GPS to the proot guest
+        // (gates attach_gps_to_guest). MCP-drivable so integration tests can
+        // flip it, same reasoning as the USB key.
+        "gps_guest_exposure_enabled",
         // Master switch for inbound-email automation (Mail Rules). MCP-drivable so
         // the engine can be armed without the Settings UI.
         "mail_automation_enabled",
@@ -3960,6 +4040,7 @@ internal class McpTools(
             "mcp_lan_bind_enabled" -> preferencesRepository.mcpLanBindEnabled.first()
             "mcp_wireguard_tunnel_config_id" -> preferencesRepository.mcpWireguardTunnelConfigId.first() ?: ""
             "usb_guest_exposure_enabled" -> preferencesRepository.usbGuestExposureEnabled.first()
+            "gps_guest_exposure_enabled" -> preferencesRepository.gpsGuestExposureEnabled.first()
             "mail_automation_enabled" -> preferencesRepository.mailAutomationEnabled.first()
             "connection_logging_enabled" -> preferencesRepository.connectionLoggingEnabled.first()
             "verbose_logging_enabled" -> preferencesRepository.verboseLoggingEnabled.first()
@@ -4060,6 +4141,7 @@ internal class McpTools(
             "mcp_wireguard_tunnel_config_id" ->
                 preferencesRepository.setMcpWireguardTunnelConfigId((rawValue as? String)?.ifBlank { null })
             "usb_guest_exposure_enabled" -> preferencesRepository.setUsbGuestExposureEnabled(coerceBool())
+            "gps_guest_exposure_enabled" -> preferencesRepository.setGpsGuestExposureEnabled(coerceBool())
             "mail_automation_enabled" -> preferencesRepository.setMailAutomationEnabled(coerceBool())
             "connection_logging_enabled" -> preferencesRepository.setConnectionLoggingEnabled(coerceBool())
             "verbose_logging_enabled" -> preferencesRepository.setVerboseLoggingEnabled(coerceBool())
@@ -5782,6 +5864,36 @@ internal class McpTools(
             add("adb", "adb", "workstation", "reverse-tunnel", "active") { put("port", adbPort) }
         }
 
+        // GPS broker (bridges.md GPS row): the continuous log feeds the
+        // agent; the GPS-disciplined NTP service feeds the LAN.
+        if (GpsBroker.isLogging || GpsBroker.isNtpRunning || GpsBroker.isGuestBridgeRunning) {
+            val gps = GpsBroker.statusJson()
+            if (GpsBroker.isLogging) {
+                add("GPS", "gps", "agent", "gps-log-jsonl", "active") {
+                    gps.optJSONObject("logging")?.let { l ->
+                        put("id", l.optString("id"))
+                        put("file", l.optString("file"))
+                        put("fixes", l.optLong("fixes"))
+                    }
+                }
+            }
+            gps.optJSONObject("ntp")?.let { n ->
+                add("GPS time", "gps", "lan", "sntp", "active") {
+                    put("port", n.optInt("port"))
+                    if (!n.isNull("lanBind")) put("lanBind", n.optString("lanBind"))
+                    put("requests", n.optLong("requests"))
+                }
+            }
+            gps.optJSONObject("guestBridge")?.let { g ->
+                add("GPS", "gps", "linux-guest", "gpsd-nmea", "active") {
+                    put("socketName", g.optString("socketName"))
+                    put("readers", g.optInt("readers"))
+                    put("sentences", g.optLong("sentences"))
+                    put("dropped", g.optLong("dropped"))
+                }
+            }
+        }
+
         JSONObject().apply {
             put("bridges", bridges)
             put("count", bridges.length())
@@ -5939,6 +6051,8 @@ internal class McpTools(
                     mouseMode = modeTracker.mouseMode,
                     activeMouseMode = modeTracker.activeMouseMode,
                     bracketPasteMode = modeTracker.bracketPasteMode,
+                    altScreen = modeTracker.altScreen,
+                    cursorKeyAppMode = modeTracker.cursorKeyAppMode,
                 )
             ) {
                 agentFeed = feed
@@ -6295,6 +6409,18 @@ internal class McpTools(
             rdpPassword = if (existing.connectionType == "RDP") newPassword(existing.rdpPassword) else existing.rdpPassword,
             smbPassword = if (existing.connectionType == "SMB") newPassword(existing.smbPassword) else existing.smbPassword,
             spicePassword = if (existing.connectionType == "SPICE") newPassword(existing.spicePassword) else existing.spicePassword,
+            openaiApiKey = if (existing.connectionType == "OPENAI") newPassword(existing.openaiApiKey) else existing.openaiApiKey,
+            openaiPathPrefix = if (existing.connectionType == "OPENAI") str("openaiPathPrefix", existing.openaiPathPrefix) else existing.openaiPathPrefix,
+            aiProtocol = if (existing.connectionType == "OPENAI") {
+                // Absent = unchanged; empty string clears (back to OPENAI).
+                if (args.has("protocol")) {
+                    args.optString("protocol").trim().uppercase().takeIf { it.isNotBlank() }
+                        ?.let { p ->
+                            if (p == "OPENAI" || p == "OLLAMA" || p == "ANTHROPIC" || p == "GEMINI") p
+                            else throw IllegalArgumentException("protocol must be OPENAI, OLLAMA, ANTHROPIC, or GEMINI")
+                        }
+                } else existing.aiProtocol
+            } else existing.aiProtocol,
             keyId = newKeyId,
             sshOptions = if (existing.connectionType == "SSH") str("sshOptions", existing.sshOptions) else existing.sshOptions,
             remoteCommand = if (existing.connectionType == "SSH") str("remoteCommand", existing.remoteCommand) else existing.remoteCommand,
@@ -6328,8 +6454,8 @@ internal class McpTools(
         val type = args.optString("connectionType").uppercase().ifBlank {
             throw IllegalArgumentException("connectionType required")
         }
-        if (type !in setOf("SSH", "SMB", "VNC", "RDP", "SPICE", "EMAIL", "BTSERIAL", "BLESERIAL", "USBSERIAL", "RETICULUM", "GUEST")) {
-            throw IllegalArgumentException("connectionType must be SSH, SMB, VNC, RDP, SPICE, EMAIL, BTSERIAL, BLESERIAL, USBSERIAL, or RETICULUM (use the UI for LOCAL / RCLONE / GUEST)")
+        if (type !in setOf("SSH", "SMB", "VNC", "RDP", "SPICE", "EMAIL", "OPENAI", "BTSERIAL", "BLESERIAL", "USBSERIAL", "RETICULUM", "GUEST")) {
+            throw IllegalArgumentException("connectionType must be SSH, SMB, VNC, RDP, SPICE, EMAIL, OPENAI, BTSERIAL, BLESERIAL, USBSERIAL, or RETICULUM (use the UI for LOCAL / RCLONE / GUEST)")
         }
         // EMAIL's host is the optional tunnel-ingress/bastion (SPA/knock target),
         // not the mail server — so it may be blank; every other type requires it.
@@ -6356,6 +6482,7 @@ internal class McpTools(
             "VNC" -> 5900
             "RDP" -> 3389
             "SPICE" -> 5900
+            "OPENAI" -> 0
             "EMAIL" -> 0
             "BTSERIAL" -> 0
             "BLESERIAL" -> 0
@@ -6616,6 +6743,26 @@ internal class McpTools(
                     emailPort = if (args.has("emailPort")) args.optInt("emailPort", 993) else 993,
                     emailSmtpPort = if (args.has("emailSmtpPort")) args.optInt("emailSmtpPort", 465) else 465,
                     emailTls = args.optBoolean("emailTls", true),
+                    tunnelConfigId = tunnelConfigId,
+                    portKnockSequence = knockSequence,
+                    portKnockDelayMs = knockDelay,
+                )
+            }
+            "OPENAI" -> {
+                ConnectionProfile(
+                    label = label,
+                    host = host,
+                    port = port,
+                    username = "",
+                    connectionType = "OPENAI",
+                    openaiApiKey = password.ifBlank { null },
+                    openaiPathPrefix = args.optString("openaiPathPrefix").ifBlank { null },
+                    aiProtocol = args.optString("protocol").trim().uppercase().takeIf { it.isNotBlank() && it != "OPENAI" }
+                        ?.also { p ->
+                            if (p !in listOf("OLLAMA", "ANTHROPIC", "GEMINI")) {
+                                throw IllegalArgumentException("protocol must be OPENAI, OLLAMA, ANTHROPIC, or GEMINI")
+                            }
+                        },
                     tunnelConfigId = tunnelConfigId,
                     portKnockSequence = knockSequence,
                     portKnockDelayMs = knockDelay,
@@ -6893,7 +7040,7 @@ internal class McpTools(
      */
     private fun parseSessionManager(raw: String?): String? {
         val v = raw?.trim()?.uppercase()?.ifBlank { null } ?: return null
-        val valid = setOf("TMUX", "ZELLIJ", "SCREEN", "BYOBU", "HERDR")
+        val valid = setOf("TMUX", "ZELLIJ", "SCREEN", "BYOBU", "HERDR", "PSMUX")
         if (v !in valid) {
             throw IllegalArgumentException("sessionManager must be one of ${valid.joinToString(", ")} (or omit for none)")
         }

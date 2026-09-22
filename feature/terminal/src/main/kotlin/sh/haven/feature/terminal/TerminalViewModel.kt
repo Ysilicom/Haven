@@ -353,11 +353,21 @@ class TerminalViewModel @Inject constructor(
         initialProfileId: String?,
     ) {
         viewModelScope.launch {
+            // A local shell has no remote filesystem to upload into, and the
+            // Files tab's pick banner refuses local destinations — so passing
+            // the local tab's profile here would pre-select a destination the
+            // banner can never confirm and the flow would dead-end. Strip it
+            // and let the banner offer remote destinations as it does for
+            // every other attach origin: the user picks their SSH host and
+            // the upload rides the active protocol (SFTP for a connected
+            // carrier).
+            val carrier = initialProfileId
+                ?.takeIf { connectionRepository.getById(it)?.isLocal != true }
             val payload = attachCoordinator.attach(
                 sourceUri = sourceUri,
                 fileName = fileName,
                 fileSize = fileSize,
-                initialProfileId = initialProfileId,
+                initialProfileId = carrier,
             ) ?: return@launch
             _pendingAttachInjection.value = payload
         }
@@ -1180,8 +1190,8 @@ class TerminalViewModel @Inject constructor(
                         mouseMode = agentRegistryEntry.mouseMode ?: MutableStateFlow(false),
                         activeMouseMode = agentRegistryEntry.activeMouseMode ?: MutableStateFlow<Int?>(null),
                         bracketPasteMode = agentRegistryEntry.bracketPasteMode ?: MutableStateFlow(false),
-                        altScreen = MutableStateFlow(false),
-                        cursorKeyAppMode = MutableStateFlow(false),
+                        altScreen = agentRegistryEntry.altScreen ?: MutableStateFlow(false),
+                        cursorKeyAppMode = agentRegistryEntry.cursorKeyAppMode ?: MutableStateFlow(false),
                         oscHandler = adoptedOscHandler,
                         feedOutput = adoptedFeedOutput,
                         cwd = MutableStateFlow(null),
@@ -1247,6 +1257,15 @@ class TerminalViewModel @Inject constructor(
                     },
                     maxScrollbackLines = terminalScrollbackRows.value,
                 )
+                // The guest console runs opencode, whose Ink renderer diffs
+                // line-by-line against its own model; a backfilling grow
+                // reflows content under it and every skipped line strands
+                // popped scrollback (see GrowBackfillDiffRenderTest). Anchor
+                // grows at the top instead — the app's WINCH repaint fills
+                // the new rows.
+                if (source.transportType == "GUEST") {
+                    reEmulator.backfillScrollbackOnGrow = false
+                }
                 // Replay buffered output into the fresh emulator BEFORE wiring the
                 // live stream, so the restore and new output don't interleave.
                 source.snapshot(sessionId)?.let { buffered ->
@@ -1336,6 +1355,11 @@ class TerminalViewModel @Inject constructor(
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
             )
+            // Guest console: disable grow backfill — Ink's line-diff repaint
+            // strands popped scrollback in skipped rows (GrowBackfillDiffRenderTest).
+            if (source.transportType == "GUEST") {
+                emulator.backfillScrollbackOnGrow = false
+            }
 
             localSession.start()
 
@@ -2165,6 +2189,8 @@ class TerminalViewModel @Inject constructor(
                         tab.mouseMode,
                         tab.activeMouseMode,
                         tab.bracketPasteMode,
+                        tab.altScreen,
+                        tab.cursorKeyAppMode,
                         tab.oscHandler,
                         tab.feedOutput,
                     )
@@ -2184,6 +2210,8 @@ class TerminalViewModel @Inject constructor(
                         tab.mouseMode,
                         tab.activeMouseMode,
                         tab.bracketPasteMode,
+                        tab.altScreen,
+                        tab.cursorKeyAppMode,
                         tab.oscHandler,
                         tab.feedOutput,
                     )
@@ -2204,6 +2232,8 @@ class TerminalViewModel @Inject constructor(
                         existing.mouseMode ?: tab.mouseMode,
                         existing.activeMouseMode ?: tab.activeMouseMode,
                         existing.bracketPasteMode ?: tab.bracketPasteMode,
+                        existing.altScreen ?: tab.altScreen,
+                        existing.cursorKeyAppMode ?: tab.cursorKeyAppMode,
                         tab.oscHandler,
                         existing.feedOutput ?: tab.feedOutput,
                     )
@@ -2421,6 +2451,7 @@ class TerminalViewModel @Inject constructor(
         "ZELLIJ" -> byteArrayOf(0x0F, 'd'.code.toByte())        // Ctrl+O d
         "SCREEN" -> byteArrayOf(0x01, 'd'.code.toByte())        // Ctrl+A d
         "HERDR" -> byteArrayOf(0x02, 'q'.code.toByte())         // Ctrl+B q (herdr default prefix+detach)
+        "PSMUX" -> byteArrayOf(0x02, 'd'.code.toByte())         // Ctrl+B d (psmux default prefix+detach)
         else -> null
     }
 

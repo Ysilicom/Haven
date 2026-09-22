@@ -13,8 +13,8 @@ android {
         applicationId = "sh.haven.app.widget"
         minSdk = 26
         targetSdk = 35
-        versionCode = 849
-        versionName = "5.87.86"
+        versionCode = 863
+        versionName = "5.89.12"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -83,6 +83,13 @@ android {
             }
             isMinifyEnabled = true
             isShrinkResources = true
+            // The release workflow passes -PnoLintVital: lintVitalAnalyze ran
+            // concurrently with minifyWithR8 and that overlap is where the
+            // 16G free runners got evicted (v5.89.0: 15.6G used, 373M
+            // available, killed mid-R8). Nothing consumes lintVital's result
+            // in CI — the gate lives in local release builds, which keep it.
+            // (buildType-level checkReleaseBuilds is gone in AGP 9; the
+            // lint {} block below is the replacement.)
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -144,6 +151,18 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+    }
+
+    lint {
+        // -PnoLintVital (release workflow only): skip lintVital on release
+        // builds. Its analyze/report ran concurrently with minifyWithR8 and
+        // that overlap is where the 16G free runners got evicted (v5.89.0:
+        // 15.6G used, 373M available, killed mid-R8); nothing in CI consumes
+        // its result. Local release builds, which omit the property, keep
+        // the gate.
+        if (project.hasProperty("noLintVital")) {
+            checkReleaseBuilds = false
+        }
     }
 }
 
@@ -268,7 +287,9 @@ dependencies {
     implementation(project(":feature:terminal"))
     implementation(project(":feature:sftp"))
     implementation(project(":feature:mail"))
+    implementation(project(":feature:chat"))
     implementation(project(":core:mail"))
+    implementation(project(":core:openai"))
     implementation(project(":feature:keys"))
     implementation(project(":feature:settings"))
     implementation(project(":feature:editor"))

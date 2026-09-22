@@ -306,6 +306,8 @@
 
     <string name="settings_usb_guest_title">Открыть USB-устройства для Linux-гостя</string>
     <string name="settings_usb_guest_subtitle">Разрешить подключённым USB-устройствам работать с гостевыми приложениями через шим haven-usb. Каждое подключение запрашивает согласие.</string>
+    <string name="settings_gps_guest_title">Открыть GPS для Linux-гостя</string>
+    <string name="settings_gps_guest_subtitle">Передавать GPS-позицию телефона в гостя как NMEA-устройство (haven-gps). После включения любой гостевой процесс может читать позицию. Каждое подключение запрашивает согласие.</string>
     <string name="settings_proot_install_log_title">Просмотр журнала установки PRoot</string>
     <string name="settings_proot_install_log_subtitle">Пофазные события установки дистрибутивов Linux (задача #162)</string>
     <string name="settings_logcat_capture_title">Захват Logcat</string>
@@ -497,4 +499,11 @@
     <string name="settings_update_check_up_to_date">Установлена последняя версия %1$s</string>
     <string name="settings_update_check_failed">Не удалось проверить: %1$s</string>
     <string name="settings_update_check_other_channel">Эта копия установлена не из выпуска на GitHub, поэтому загрузка с GitHub её не заменит. Обновляйтесь там, где вы установили Haven.</string>
+    <string name="settings_sshkey_keystore_broken_title">Хранилище SSH-ключей недоступно</string>
+    <string name="settings_sshkey_keystore_broken_subtitle">Хранилище ключей этого устройства потеряло SSH-ключ Haven. Сохранённые закрытые ключи нельзя прочитать, а новые нельзя создать. Нажмите, чтобы восстановить.</string>
+    <string name="settings_sshkey_reset_title">Восстановить хранилище SSH-ключей?</string>
+    <string name="settings_sshkey_reset_body">Это создаст новый ключ, чтобы SSH-ключи можно было создавать снова.
+
+Каждый закрытый ключ, уже сохранённый в Haven, потребуется импортировать или создать заново. Они уже нечитаемы — ключ, который их защищал, утерян, обычно потому что приложение было переустановлено из другого источника — поэтому это восстанавливает приложение, а не приводит к новым потерям.</string>
+    <string name="settings_sshkey_reset_confirm">Восстановить</string>
 </resources>

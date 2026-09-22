@@ -5,6 +5,84 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.12
+
+- **Paste suggestions in the keyboard reach the terminal.** IMEs that offer paste through the input connection's context-menu actions (GBoard's paste suggestion strip) had those actions silently dropped. Paste and paste-as-plain-text now run the same paste handler the terminal's context menu uses.
+- **psmux joins the session managers.** Saved psmux connections get the same auto-attach, session list, kill and rename handling as tmux/screen/Herdr (#658, thanks @Bearmancer). The feature docs list which session managers are covered and note that on a stock Windows OpenSSH host the default shell is cmd or PowerShell, so POSIX-shell session managers only apply where a POSIX sh is the configured login shell.
+
+## v5.89.11
+
+- **The cursor stays where the program put it when the terminal grows.** A rows-only resize that popped scrollback lines back onto the screen walked the cursor down with the restored history, so a cursor-tracking TUI (opencode) repainted rows away from where its model held the cursor and stranded a stale frame block mid-screen. The cursor now ends on the cell the program believes it is on, with or without scrollback.
+- **Keyboard toggles on the guest console repaint cleanly.** A rows-only grow no longer backfills from scrollback on the guest console: opencode's line-diff renderer skips lines the backfill reflows under it, so popped history showed up as stray blocks. The grow anchors at the top and the app's own resize repaint fills the blank rows.
+
+## v5.89.10
+
+- **Enter works in the guest agent TUI, and ctrl-c no longer kills the guest.** The guest console's host-side pty ran in cooked mode, so the terminal's carriage return was translated into a newline before the TUI ever saw it (Enter inserted a line break instead of submitting), and ctrl-c was delivered as SIGINT to the guest kernel process itself, killing the guest. The guest console pty is now raw (local shells keep their cooked mode) and the launcher sets raw tty on the guest side too. Guest rootfs bumped to uml-transport `uml-guest-8`.
+- **The guest's share folder mounts on every boot again.** The rootfs's init table mounted `/host` at sysinit with stderr discarded, and the mount silently failed there on every boot (the same command run by hand succeeds) — guests came up with an empty `/host`, so the endpoint backup couldn't be restored after a re-stage. The discard is gone and a failed mount now prints `HOSTFSFAIL` on the console (uml-guest-8).
+- **The guest agent survives long sessions.** A session mid-task grew past the 1 GB memory cap and the kernel OOM-killed opencode (device, 2026-09-20). The cap is now 2 GB; UML only touches pages the guest actually uses, so an idle guest costs the same as before.
+- **A terminal the agent opened keeps its alt-screen state when it becomes a tab.** Sessions claimed by the agent before a tab existed were adopted with the alternate-screen and application-cursor modes hardcoded off, so a full-screen program's (vim, less) swipe gestures misrouted and stale scrollback could paint over the live screen. The session registry now carries the live mode flows and adopting tabs consume them.
+- **The guest agent TUI starts reliably.** The rootfs image grew to 1 GiB (512 MiB filled up and broke the TUI's graphics library load) and ships that library preplaced; the guest's DHCP bring-up step was restored after the guest-5/6 rebase dropped it, so guests boot with a route again; and the console prints a note while the TUI's first frame loads.
+- **The agent endpoint survives a rootfs update.** After the first-run prompt the endpoint file is backed up to the share (in-guest, values never cross the console) and restored after a re-stage, so re-staging no longer re-asks for the key. Existing goose-format share backups are migrated too.
+- **Escape hatch when the TUI owns the console.** Creating `agent-shell` in the guest's share folder (Files → uml share) drops the next boot to a login shell instead of the agent.
+- **The guest agent's first-run prompt no longer crash-loops on model ids with spaces.** The one-time endpoint prompt on a fresh guest saved the model id unquoted, so an id like "Qwen 3.8 Max" failed to source, the launcher died on the missing variable, and init respawned it into a loop that ended the guest. Values are now written single-quoted, and a malformed endpoint.env (hand-edited, unquoted) is dropped and re-prompted instead of looping.
+- **Mosh screens no longer freeze for seconds during scroll bursts.** When a burst of terminal output arrived as diffs built on a state the client had already passed (its acknowledgement of that state was lost), the client skipped them and sent nothing back until the next 3-second keepalive — the server spent that whole window retransmitting a diff that could never apply (#421). A skipped diff now triggers a prompt, rate-limited resend of the acknowledgement carrying the client's actual state, which is what moves the server onto the right base.
+
+## v5.89.9
+
+- **The guest terminal opens onto a coding agent.** UML guest profiles now boot straight into the opencode TUI instead of a bare shell. The guest rootfs ships opencode preinstalled (uml-transport `uml-guest-5`); on first run it asks once for your AI endpoint — base URL, API key and model id — on the console. The key is read with echo off and stored only in the guest's `/root/endpoint.env` (chmod 600), and handed to the agent through an environment-variable indirection, so no config file ever holds it. Quitting the TUI drops to a shell; logging out respawns the agent. `touch /root/no-agent` in the guest to skip it and get a plain login shell.
+- **Guests get enough memory to run the agent.** The guest memory cap was 384 MB, fine for a shell but an out-of-memory death for any coding agent TUI (opencode needs over 512 MB to start). The cap is now 1 GB — UML only touches pages the guest actually uses, so an idle guest costs the same as before.
+
+## v5.89.8
+
+- **Linux guests boot again.** v5.89.7 relinked the guest kernel for the TCP stall fix and dropped a post-link step the previous kernel had: Android's app sandbox force-kills two syscalls the guest's libc issues at startup (`set_robust_list`, `rseq`), so the guest process died with signal 31 about 100 ms after launch — no console output, no network log, nothing to debug from. The shipped kernel binary is now neutered for those calls (uml-transport `uml-guest-4`), a scan gate fails any kernel that ships without the step, and a fresh guest boots on device.
+
+## v5.89.7
+
+- **Linux guests come up with a working network on every boot.** The guest rootfs configured its `vec0` interface with a single `ifup -a` whose errors were silenced, and on some boots its DHCP lost the race against the passthrough helper not yet accepting on the socket — the guest booted with no interface and nothing on the console saying why. A `haven-net` sysinit step now retries DHCP a few times and prints a visible warning if the interface never comes up.
+- **Guest TCP no longer stalls under sustained agent load.** passt's raw-Ethernet input path could overwrite frames still queued in its packet pool; each datagram now drains into its own slot (uml-transport `uml-guest-3`). Upgrading re-stages the guest rootfs, which clears guest user data.
+
+## v5.89.6
+
+- **Editing a saved Cloudflare-routed connection no longer strips its Cloudflare settings.** The edit dialog pre-populated its fields once, at a moment when the saved tunnel config hadn't loaded yet, so a saved profile came back as a plain SSH profile — and saving it deleted the embedded tunnel and the captured JWT. Opening Edit and saving without re-doing the sign-in was the one-way trip to a broken profile. The fields now apply the saved tunnel when its load completes (#643).
+- **Cloudflare sign-in starts from a clean session.** Each sign-in now clears every cookie the WebView holds for both the app hostname and the team domain, not just the app domain's `CF_Authorization` — stale team-domain sessions were surfacing Cloudflare's "Invalid login session" interstitial on repeat sign-ins and made users tap through a recovery link (#643).
+
+## v5.89.5
+
+- **Play in Browser: fixed files that would not stream.** A stream that ends early — seeking a non-faststart MP4 to its trailing moov atom does exactly this — left its queued SFTP responses and a dead read-side thread on the shared control channel, so every later request on that channel returned zero bytes and the player gave up with "moov not found". Each openInputStream stream now runs on its own SFTP channel, retired on close.
+- Failed HLS transcodes are now written to the connection log (a failed job previously left nothing to read there), and SFTP stream failures name the exception class — jsch throws `SftpException("")` on a desynced channel, which logged as an empty message.
+
+## v5.89.4
+
+- **Cloudflare Access sign-in: the v5.89.2 fix for self-hosted applications never actually ran.** The probe that fetches the login redirect from the Access edge does blocking network I/O, and it was called from the sign-in screen's main-thread scope — Android killed it and the code swallowed the failure, so sign-in silently fell back to the constructed login URL and self-hosted apps kept showing "Unable to find your Access application" (#643). The probe now runs on a worker thread, and a probe that finds nothing is logged instead of swallowed.
+
+## v5.89.3
+
+- The Connections screen's peer-discovery scan no longer probes Tailscale's LocalAPI (`100.100.100.100`) when the Tailscale app isn't installed. That address only exists on the app's own TUN interface, so without it installed every scan fired a doomed connect attempt that firewall apps reported as Haven phoning out (#654). With Tailscale installed, discovery works exactly as before.
+
+## v5.89.2
+
+- **Cloudflare Access sign-in now works with self-hosted applications (#643).** Haven asked the Access edge for a login page it constructed itself, but the pair of values naming *which* Access application protects a hostname exists only in the redirect the edge hands back, so self-hosted apps answered "Unable to find your Access application" while the same hostname loaded fine in a browser. Sign-in now requests the protected hostname directly, redirects off, and loads the redirect target the edge returns — the way a browser does. A redirect that has already bounced to the identity provider, or anything not an http(s) login URL, is refused rather than handed to a WebView holding your cookies; anything unusable falls back to the old constructed URL.
+
+- **SSH keys can be generated again after an install-channel switch (#655).** Switching between F-Droid and a GitHub release changes the APK signature, and Android throws away the Keystore entries belonging to the old one. Stored SSH keys become undecryptable, which is expected and unrecoverable — but generating a *new* key failed too, because generation writes through the same dead master key. Settings now detects the dead keyset and offers a repair (only on a permanent failure — a transient one, like a locked device, still means your keys are recoverable). The repair dialog says plainly that stored keys must be imported or generated again.
+
+- Dependency updates: Kotlin 2.4.20, Compose BOM 2026.09.00, navigation-compose 2.10.1, Go `x/crypto` 0.57.0, Tailscale 1.102.4, and rustls 0.23.44 / smallvec 1.16.1 / uniffi 0.32.1 in the RDP native build.
+
+## v5.89.1
+
+- Fixed attaching from a local shell tab. Take photo or Send file from a local tab dead-ended: the Files tab pre-selected the device's own filesystem as the destination, which can't accept uploads, so no destination was offered and no path was pasted. The pick banner now lands on the first connected remote instead, and the upload rides the active protocol as usual — SFTP for a connected SSH host.
+
+## v5.89.0
+
+- **AI chat routes through SSH and Reticulum.** An OPENAI profile gains an AI-route setting next to its endpoint: Direct (default), Via SSH, or Via Reticulum. Via SSH opens a local port forward through a connected SSH carrier profile — jump-host auth and prompts included — and the chat's HTTP dials the loopback forward while URL rewriting stays off, so TLS hostname verification still runs against the real endpoint name. Via Reticulum forwards over a connected Reticulum carrier the same way; the carrier must already be connected (a forward-only consumer can't keep the RNS stack alive by itself). A route and tunnel/proxy routing are mutually exclusive — setting one clears the other. The route is torn down on every disconnect path: disconnecting the endpoint closes its forward, and a carrier dying fails the endpoint's sessions and drops the forward, so the next send refuses until a fresh connect rather than silently bypassing the route.
+
+- **Chat images from the Files tab.** The chat attach sheet gains a Files option alongside gallery and camera: pick a file from any Files-tab backend to attach. Files above 20 MiB are rejected with the size shown; the pick banner has a Cancel, and cancelling leaves no staged attachment.
+
+- **Take photo from the terminal attach sheet.** The terminal paperclip sheet gains a Take photo option next to send-file and the scanner entries: the capture rides the existing send-file path, uploading through the Files tab and inserting the remote path at the cursor.
+
+## v5.88.0
+
+- **AI chat.** New chat screen for AI models, over OpenAI-compatible endpoints (llama-server, vLLM, CLIProxyAPI), Ollama's native API, the Anthropic Messages API, or Gemini — selected per profile and verified against the server's model list on connect. Endpoints ride the same per-profile routing as every other transport (WireGuard, Tailscale, SOCKS/HTTP proxies); API keys are stored encrypted at rest; plain-HTTP `http://` LAN endpoints are now reachable by explicit choice. Attach up to 4 images per message from gallery or camera for vision models; long-press a message to copy its text or image to the system clipboard, one-tap copy of the newest assistant reply, and a composer paste button when the clipboard holds an image. Transcripts are ephemeral by default; a save toggle persists the conversation (including attachments) to the app database encrypted at rest, and turning it off deletes the rows. MCP: `create_connection`/`update_connection` gain `connectionType=OPENAI` with a `protocol` field and `openaiPathPrefix`, and new `openai_list_models` / `openai_chat` tools run completions without the screen.
+
 ## v5.87.86
 
 - **USB card rescue console (live route)**. A failing SD card can now be rescued in seconds instead of minutes: Desktop tab → Manage → "Open USB card directly (rescue console)". The card's raw sectors are served over NBD to the Linux guest, which attaches it as `/dev/nbd0` and prints the `ddrescue`/`mdir` command lines — the VM route stays for file browsing. Read-only by default; rescued images are written to Haven's `uml/share` app folder via the guest's new hostfs share. The guest rootfs image gains ddrescue, nbd-client, mtools, e2fsprogs and util-linux (same 512 MB image, one re-unpack on update, tracked by a version marker). MCP: `open_usb_drive` gains `route:"guest"`, `list_usb_drives` reports `live[]`, `close_usb_drive` takes `kind`.

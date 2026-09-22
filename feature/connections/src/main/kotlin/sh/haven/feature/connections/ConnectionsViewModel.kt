@@ -69,6 +69,8 @@ import sh.haven.core.mail.MailConnectParams
 import sh.haven.core.mail.MailEngine
 import sh.haven.core.mail.MailException
 import sh.haven.core.mail.MailSessionManager
+import sh.haven.core.openai.OpenAiConnectParams
+import sh.haven.core.openai.OpenAiSessionManager
 import sh.haven.core.security.Totp
 import sh.haven.core.reticulum.DiscoveredDestination
 import sh.haven.core.reticulum.ReticulumSessionManager
@@ -233,10 +235,13 @@ class ConnectionsViewModel @Inject constructor(
     private val usbSerialSessionManager: sh.haven.core.usbserial.UsbSerialSessionManager,
     private val usbBroker: sh.haven.core.usb.UsbBroker,
     private val reticulumTransport: ReticulumTransport,
+    private val reticulumForwardServer: sh.haven.core.reticulum.ReticulumForwardServer,
     private val smbSessionManager: SmbSessionManager,
     private val rcloneSessionManager: RcloneSessionManager,
     private val rcloneClient: RcloneClient,
     private val mailSessionManager: MailSessionManager,
+    private val openAiSessionManager: OpenAiSessionManager,
+    private val aiRouteRegistry: sh.haven.core.openai.AiRouteRegistry,
     private val fidoAuthenticator: FidoAuthenticator,
     private val localSessionManager: LocalSessionManager,
     private val umlGuestManager: sh.haven.core.local.uml.UmlGuestManager,
@@ -1098,6 +1103,8 @@ class ConnectionsViewModel @Inject constructor(
     /** Emitted to navigate to the Mail tab for an EMAIL connection. */
     private val _navigateToEmail = MutableStateFlow<String?>(null)
     val navigateToEmail: StateFlow<String?> = _navigateToEmail.asStateFlow()
+    private val _navigateToChat = MutableStateFlow<String?>(null)
+    val navigateToChat: StateFlow<String?> = _navigateToChat.asStateFlow()
 
     /** Emitted to open a new session (new tab) on an already-connected profile. */
     private val _newSessionProfileId = MutableStateFlow<String?>(null)
@@ -1311,6 +1318,7 @@ class ConnectionsViewModel @Inject constructor(
         _navigateToSmb.value = null
         _navigateToRclone.value = null
         _navigateToEmail.value = null
+        _navigateToChat.value = null
         _navigateToConnections.value = false
         _newSessionProfileId.value = null
     }
@@ -2410,6 +2418,10 @@ class ConnectionsViewModel @Inject constructor(
             connectEmail(profile)
             return
         }
+        if (profile.isOpenai) {
+            connectOpenAI(profile)
+            return
+        }
         if (profile.isReticulum) {
             connectReticulum(profile)
             return
@@ -2862,6 +2874,262 @@ class ConnectionsViewModel @Inject constructor(
                 _connectingProfileId.value = null
             }
         }
+    }
+
+    /**
+     * Connect an OPENAI profile: tunnel resolve (fail closed, R7) → register
+     * session → `GET /v1/models` verify (populates the model list) → navigate
+     * to the chat screen. No credential prompt: the API key lives on the
+     * profile, and a keyless endpoint (llama-server) is legitimate.
+     */
+    private fun connectOpenAI(profile: ConnectionProfile) {
+        viewModelScope.launch {
+            _connectingProfileId.value = profile.id
+            val startedAt = System.currentTimeMillis()
+            try {
+                repository.markConnected(profile.id)
+                // AI route carrier first: the SSH forward / mesh bridge must
+                // be listening before the endpoint is probed through it. An
+                // unrouted profile gets [AiRouteSetup.Direct] and falls
+                // straight through to the per-profile tunnel resolution.
+                val route = setupAiRoute(profile)
+                if (route is AiRouteSetup.PasswordPrompt) {
+                    // Password prompt raised for the carrier's jump host; the
+                    // user's answer replays connect via the tunnel-dependent
+                    // path. Nothing failed — leave the dialog standing.
+                    _connectingProfileId.value = null
+                    return@launch
+                }
+                val params = buildOpenAiParams(profile, route as AiRouteSetup)
+                val sessionId = openAiSessionManager.registerSession(profile.id, profile.label)
+                openAiSessionManager.connectSession(sessionId, params)
+                _navigateToChat.value = profile.id
+                connectionLogRepository.logEvent(
+                    profileId = profile.id,
+                    status = ConnectionLog.Status.CONNECTED,
+                    durationMs = System.currentTimeMillis() - startedAt,
+                    details = "OpenAI endpoint connected (${openAiSessionManager.modelsForProfile(profile.id).size} models" +
+                        ((route as? AiRouteSetup.Routed)?.let { ", routed via ${it.routeType} carrier" } ?: "") + ")",
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to connect OpenAI endpoint", e)
+                // Route setup failures are surfaced by their own path (the
+                // password prompt, or a specific carrier message) — don't
+                // paper over them with the generic endpoint error.
+                if (e !is AiRouteSilentFailure) {
+                    _error.value = "AI endpoint: ${e.message}"
+                }
+                connectionLogRepository.logEvent(
+                    profileId = profile.id,
+                    status = ConnectionLog.Status.FAILED,
+                    durationMs = System.currentTimeMillis() - startedAt,
+                    details = e.message,
+                )
+            } finally {
+                _connectingProfileId.value = null
+            }
+        }
+    }
+
+    /** One live AI route carrier per routed OPENAI profile (in-memory). */
+    private sealed interface AiRouteSetup {
+        /** Unrouted profile — dial per-profile tunnel or direct as usual. */
+        data object Direct : AiRouteSetup
+        /** Carrier's jump host raised the password prompt; connect aborts and replays. */
+        data object PasswordPrompt : AiRouteSetup
+        /** Carrier established; the endpoint dials this loopback bind. */
+        data class Routed(val routeType: String, val factory: sh.haven.core.tunnel.LoopbackSocketFactory) : AiRouteSetup
+    }
+
+    /** Route setup failure whose message was already surfaced to the user. */
+    private class AiRouteSilentFailure(message: String) : Exception(message)
+
+    /**
+     * Establish the AI route carrier for a routed OPENAI profile. SSH
+     * mirrors [connectSmb]'s tunnel setup (jump-host auth incl. the
+     * password-prompt replay, LOCAL forward on a random port, tunnel lease);
+     * Reticulum mirrors [sh.haven.app.agent.McpTools]'s forward activation.
+     *
+     * Reticulum carriers must already be connected — a forward-only consumer
+     * can't keep the RNS stack alive without a session of its own, and
+     * silently dialling the carrier would spawn a visible terminal tab. So
+     * the route fails closed with an instruction rather than auto-dialling.
+     */
+    private suspend fun setupAiRoute(profile: ConnectionProfile): AiRouteSetup {
+        val routeType = profile.aiRouteType
+        val carrierId = profile.aiRouteProfileId
+        if (!sh.haven.core.openai.AiRoute.isRouted(routeType, carrierId)) {
+            if (routeType != null && !sh.haven.core.openai.AiRoute.isKnownRouteType(routeType)) {
+                throw IllegalStateException("Unknown AI route carrier type '$routeType' — refusing to connect.")
+            }
+            return AiRouteSetup.Direct
+        }
+        // A retry (password replay, or a second connect without a
+        // disconnect in between) must not mint a second forward — the old
+        // one would leak until the carrier goes away.
+        aiRouteRegistry.release(profile.id)
+        val carrier = repository.getById(carrierId ?: return AiRouteSetup.Direct)
+            ?: throw IllegalStateException("AI route carrier profile not found")
+        val (targetHost, targetPort) = sh.haven.core.openai.AiRoute
+            .endpointHostPort(profile.host, profile.port)
+        return when (routeType) {
+            "SSH" -> setupSshAiRoute(profile, carrier, targetHost, targetPort)
+            "RETICULUM" -> setupReticulumAiRoute(profile, carrier, targetHost, targetPort)
+            else -> AiRouteSetup.Direct // unreachable — isRouted checked above
+        }
+    }
+
+    private suspend fun setupSshAiRoute(
+        profile: ConnectionProfile,
+        carrier: ConnectionProfile,
+        targetHost: String,
+        targetPort: Int,
+    ): AiRouteSetup {
+        if (!carrier.isSsh) {
+            throw IllegalStateException("AI route carrier '${carrier.label}' is not an SSH profile")
+        }
+        val needsPrompt = jumpHostNeedsPasswordPrompt(carrier.id)
+        if (needsPrompt != null) {
+            // Same tunnel-mode prompt the VNC/RDP/SMB rows use (#121a): the
+            // answer replays connect(dependent) through
+            // [connectTunnelDependentAfterAuth].
+            _pendingTunnelDependent.value = profile
+            _passwordFallback.value = needsPrompt
+            return AiRouteSetup.PasswordPrompt
+        }
+        val sshSessionId = try {
+            connectJumpHost(carrier.id, "", tunnelOwnerProfileId = profile.id).first
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to connect AI route carrier (SSH)", e)
+            handleTunnelJumpFailure(e, profile, carrier.id)
+            throw AiRouteSilentFailure("AI route carrier connect failed: ${e.message}")
+        }
+        val sshClient = sshSessionManager.sessions.value[sshSessionId]?.client
+            ?: throw IllegalStateException("AI route carrier session not found")
+        val tunnelPort = withContext(Dispatchers.IO) {
+            sshClient.setPortForwardingL("127.0.0.1", 0, targetHost, targetPort)
+        }
+        val lease = sshSessionManager.acquireTunnelLease(
+            sshSessionId,
+            profile.id,
+            tunnelPort,
+            onParentGone = {
+                // Carrier session gone (user disconnect, network death,
+                // jump cascade): every route the carrier carried is dead —
+                // release them and fail their sessions rather than leaving
+                // a green dot over a dead forward. Runs on the removeSession
+                // caller thread.
+                viewModelScope.launch { aiRouteRegistry.carrierGone(carrier.id) }
+            },
+        )
+        aiRouteRegistry.register(
+            sh.haven.core.openai.AiRouteRegistry.Handle(
+                ownerProfileId = profile.id,
+                carrierProfileId = carrier.id,
+                release = { lease.close() },
+                onUnreachable = {
+                    openAiSessionManager.failSessionsForProfile(
+                        profile.id,
+                        "AI route SSH carrier session ended — the routed endpoint is unreachable.",
+                    )
+                },
+            ),
+        )
+        Log.d(TAG, "AI route (SSH): 127.0.0.1:$tunnelPort -> ${LogRedact.host(targetHost, targetPort)} via ${LogRedact.of(carrier.label)}")
+        return AiRouteSetup.Routed("SSH", sh.haven.core.tunnel.LoopbackSocketFactory(tunnelPort))
+    }
+
+    private suspend fun setupReticulumAiRoute(
+        profile: ConnectionProfile,
+        carrier: ConnectionProfile,
+        targetHost: String,
+        targetPort: Int,
+    ): AiRouteSetup {
+        if (!carrier.isReticulum) {
+            throw IllegalStateException("AI route carrier '${carrier.label}' is not a Reticulum profile")
+        }
+        // Fail closed when the carrier isn't live: a forward registered
+        // against a carrier with zero sessions dies with the RNS stack
+        // teardown, and auto-dialling the carrier here would open a
+        // terminal tab the user never asked for.
+        val connected = reticulumSessionManager.getSessionsForProfile(carrier.id)
+            .firstOrNull { it.status == ReticulumSessionManager.SessionState.Status.CONNECTED }
+            ?: throw IllegalStateException(
+                "Reticulum carrier '${carrier.label}' is not connected — connect it first (the mesh stack cannot be started for a chat route alone).",
+            )
+        val bound = reticulumForwardServer.startLocalForward(
+            carrier.id, connected.destinationHash, "127.0.0.1", 0, targetHost, targetPort,
+        )
+        aiRouteRegistry.register(
+            sh.haven.core.openai.AiRouteRegistry.Handle(
+                ownerProfileId = profile.id,
+                carrierProfileId = carrier.id,
+                release = { reticulumForwardServer.stopForward(carrier.id, bound) },
+                onUnreachable = {
+                    openAiSessionManager.failSessionsForProfile(
+                        profile.id,
+                        "AI route Reticulum carrier session ended — the routed endpoint is unreachable.",
+                    )
+                },
+            ),
+        )
+        Log.d(TAG, "AI route (Reticulum): 127.0.0.1:$bound -> ${LogRedact.host(targetHost, targetPort)} via ${LogRedact.of(carrier.label)}")
+        return AiRouteSetup.Routed("RETICULUM", sh.haven.core.tunnel.LoopbackSocketFactory(bound))
+    }
+
+    /** Tear down the AI route carrier [profileId] owns, if any. Idempotent. */
+    private fun releaseAiRoute(profileId: String) = aiRouteRegistry.release(profileId)
+
+    /**
+     * AI route teardown from the disconnect path: release the routes
+     * [profileId] owns (it's the endpoint) and cascade the ones it carries
+     * (it's the carrier — the routed endpoints' sessions must not sit green
+     * over a dead forward).
+     */
+    private fun teardownAiRoutesFor(profileId: String) {
+        aiRouteRegistry.teardownFor(profileId)
+    }
+
+    /**
+     * AI-endpoint transport: route HTTP through the AI route carrier when
+     * one is configured (never also through the profile's own tunnel — the
+     * carrier IS the transport, and stacking both is a double-hop), else
+     * through the per-profile tunnel via a JVM [javax.net.SocketFactory].
+     * Fail closed (R7) when a configured route yields no factory.
+     */
+    private suspend fun buildOpenAiParams(
+        profile: ConnectionProfile,
+        route: AiRouteSetup,
+    ): OpenAiConnectParams {
+        val dial = if (route is AiRouteSetup.Routed) {
+            sh.haven.core.openai.AiRoute.dialFactory(
+                routed = true,
+                routeFactory = route.factory,
+                tunnelFactory = null,
+                tunnelConfigured = false,
+            )
+        } else {
+            val tunnelFactory = tunnelResolver.socketFactory(profile)
+            sh.haven.core.openai.AiRoute.dialFactory(
+                routed = false,
+                routeFactory = null,
+                tunnelFactory = tunnelFactory,
+                tunnelConfigured = profile.tunnelConfigId != null,
+            )
+        }
+        val factory = when (dial) {
+            is sh.haven.core.openai.AiRoute.Dial.Refused -> throw IllegalStateException(dial.reason)
+            is sh.haven.core.openai.AiRoute.Dial.Via -> dial.factory
+        }
+        return OpenAiConnectParams(
+            baseUrl = profile.openaiBaseUrl,
+            pathPrefix = profile.openaiPathPrefix?.trim()?.ifBlank { null },
+            apiKey = profile.openaiApiKey?.ifBlank { null },
+            protocol = sh.haven.core.openai.AiProtocol.fromStored(profile.aiProtocol),
+            socketFactory = factory,
+            tunnelConfigured = route !is AiRouteSetup.Routed && profile.tunnelConfigId != null,
+            routeType = (route as? AiRouteSetup.Routed)?.routeType,
+        )
     }
 
     /**
@@ -5682,6 +5950,12 @@ class ConnectionsViewModel @Inject constructor(
                 }
             }
         }
+        // AI route teardown: release this profile's own route carrier (it's
+        // the OPENAI endpoint) and cascade the routes it carries (it's the
+        // carrier — routed endpoints fail closed rather than sitting green
+        // over a dead forward). Before the registry so the carrier's
+        // transports can't vanish first and leave the forward orphaned.
+        teardownAiRoutesFor(profileId)
         sessionManagerRegistry.disconnectProfile(profileId)
         // Tear down this profile's tunnel-dependent resources: close its VNC/
         // RDP Desktop tab (via the lease's parent-gone callback) AND release
@@ -5911,6 +6185,7 @@ class ConnectionsViewModel @Inject constructor(
             UserPreferencesRepository.SessionManager.SCREEN -> SessionManager.SCREEN
             UserPreferencesRepository.SessionManager.BYOBU -> SessionManager.BYOBU
             UserPreferencesRepository.SessionManager.HERDR -> SessionManager.HERDR
+            UserPreferencesRepository.SessionManager.PSMUX -> SessionManager.PSMUX
         }
 
     private suspend fun resolveSessionManager(profile: ConnectionProfile?): SessionManager {

@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Edition-Havenx%20Private-brightgreen?style=flat-square" alt="Edition" />
   <img src="https://img.shields.io/badge/Package-sh.haven.app.widget-9cf?style=flat-square" alt="Package" />
   <img src="https://img.shields.io/badge/Android-8.0%2B-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+" />
-  <img src="https://img.shields.io/badge/Upstream-v5.87.86%20Synced-blue?style=flat-square" alt="Upstream" />
+  <img src="https://img.shields.io/badge/Upstream-v5.89.12%20Synced-blue?style=flat-square" alt="Upstream" />
   <img src="https://img.shields.io/badge/License-AGPL--3.0-orange?style=flat-square" alt="License" />
 </p>
 
@@ -48,13 +48,13 @@
 ### 1. 云端构建 (GitHub Actions CI)
 代码推送到私有仓库 `main` 分支后，GitHub Actions 会自动触发全量构建与测试：
 - **触发路径**：`.github/workflows/ci.yml`
-- **构建产物**：构建完成后在 Actions 运行页面的 Artifacts 下载 `haven-arm64-debug`（已包含 Release 级 R8 优化）。
+- **构建产物**：构建完成后在 Actions 运行页面的 Artifacts 下载 `app-release`（已包含 Release 级 R8 优化）。
 
 ### 2. 本地私钥重签名
 从 Actions 下载 APK 后，使用本地专用签名脚本进行重签名：
 ```bash
 # 赋予执行权限并对 APK 签名
-./scripts/sign-havenx.sh path/to/haven-5.87.86-arm64-debug.apk
+./scripts/sign-havenx.sh path/to/haven-*-arm64-*.apk
 ```
 签名验证证书指纹：
 ```text
@@ -106,8 +106,11 @@ git push origin main --tags
 - **[Files & Cloud](docs/features/files-and-cloud.md)** — SFTP/SCP、SMB 以及通过 rclone 支持的 60+ 种主流云存储；跨文件系统无缝复制移动，内置编辑器与图片查看器；端侧 FFmpeg 转码、HLS 流媒体与 DLNA 投屏。
 - **[Connections](docs/features/connections.md)** — 端口转发 (-L/-R/-D/-J)、SOCKS/HTTP/Tor 代理、应用级 WireGuard 与 Tailscale 隧道、Port Knocking 与 fwknop SPA，支持各类 SSH 密钥（含 FIDO2/SK）。
 - **[Email](docs/features/email.md)** — ProtonMail（Bridge 协议）及任意 IMAP/SMTP 邮箱，支持多账号、附件收发与入站邮件规则过滤。
+- **[AI Chat](docs/features/chat.md)** — 与自托管或主流大模型 (OpenAI-compatible、Ollama、Claude、Gemini) 安全对话；支持图片视觉分析、剪贴板双向交互以及基于 SSH 隧道与 Reticulum 桥接的隐私流量转发。
 - **[Local Linux](docs/features/local-linux.md)** — 基于 PRoot 的免 Root 本地 Linux 环境（Alpine、Debian、Arch、Void），支持同屏并发。
+- **[USB 转发与快速救援](docs/features/usb.md)** — 代理外接 USB 设备并重新暴露给本地 Linux 访客机、Agent 或通过 USB/IP 转发至远程主机；内置 USB 存储卡救援控制台 (`ddrescue`/`mdir`)。
 - **[Reticulum Mesh](docs/features/reticulum.md)** — 基于 Reticulum 网状网络的 rnsh 终端、文件互传与端口转发，无公网连接时仍可工作。
+- **[Agent 协议 (MCP)](docs/mcp-tools.md)** — 内置 MCP (Model Context Protocol) 传输服务，向上层 Agent 提供百余种带鉴权、可审计的端侧与系统工具。
 - **[Security](docs/features/security.md)** — 纯端侧运行、无第三方遥测、支持生物识别解锁与 AES-256-GCM 高强度密文备份。
 
 详细特性说明请参阅 [docs/FEATURES.md](docs/FEATURES.md)。

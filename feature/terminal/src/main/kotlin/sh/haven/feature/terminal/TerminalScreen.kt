@@ -458,8 +458,24 @@ fun TerminalScreen(
         val mode = pendingScanMode
         cameraOutputUri = null
         pendingScanMode = null
-        if (success && uri != null && mode != null) {
-            viewModel.runScanFlow(uri, mode)
+        if (success && uri != null) {
+            if (mode != null) {
+                viewModel.runScanFlow(uri, mode)
+            } else {
+                // Photo-attach (the sheet's TAKE_PHOTO): no recogniser — the
+                // capture rides the SEND_FILE path, upload happens on the
+                // Files tab and the shell-quoted path lands at the cursor.
+                val activeProfileId = viewModel.tabs.value
+                    .getOrNull(viewModel.activeTabIndex.value)?.profileId
+                val (fileName, fileSize) = viewModel.attachCoordinator.queryFileInfo(uri)
+                onNavigateToSftp()
+                viewModel.runAttachFlow(
+                    sourceUri = uri,
+                    fileName = fileName,
+                    fileSize = fileSize,
+                    initialProfileId = activeProfileId,
+                )
+            }
         }
     }
 
@@ -551,6 +567,31 @@ fun TerminalScreen(
         }
     }
 
+    // TAKE_PHOTO entry: the same TakePicture launcher, but with
+    // pendingScanMode = null as the photo-attach marker — the result routes
+    // to runAttachFlow (see cameraScanLauncher) instead of a recogniser.
+    fun launchCameraPhoto() {
+        val cacheRoot = java.io.File(context.cacheDir, "scan").apply { mkdirs() }
+        val file = java.io.File(cacheRoot, "photo_${System.currentTimeMillis()}.jpg")
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file,
+        )
+        cameraOutputUri = uri
+        pendingScanMode = null
+        try {
+            cameraScanLauncher.launch(uri)
+        } catch (_: android.content.ActivityNotFoundException) {
+            cameraOutputUri = null
+            android.widget.Toast.makeText(
+                context,
+                noCameraMessage,
+                android.widget.Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
+
     fun launchGalleryScan(mode: TerminalViewModel.ScanMode) {
         pendingScanMode = mode
         galleryScanLauncher.launch(
@@ -568,6 +609,8 @@ fun TerminalScreen(
                 when (option) {
                     sh.haven.feature.terminal.attach.AttachOption.SEND_FILE ->
                         attachLauncher.launch(arrayOf("*/*"))
+                    sh.haven.feature.terminal.attach.AttachOption.TAKE_PHOTO ->
+                        launchCameraPhoto()
                     sh.haven.feature.terminal.attach.AttachOption.SCAN_CAMERA ->
                         launchCameraScan(TerminalViewModel.ScanMode.BARCODE)
                     sh.haven.feature.terminal.attach.AttachOption.SCAN_GALLERY ->

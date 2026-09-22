@@ -373,6 +373,13 @@
     <string name="connections_rclone_configured_ok">रिमोट कॉन्फ़िगर और सत्यापित किया गया।</string>
     <string name="connections_dropdown_select_ssh">SSH कनेक्शन चुनें</string>
     <string name="connections_helper_add_ssh_first">पहले एक SSH कनेक्शन जोड़ें</string>
+    <string name="connections_ai_route_section">AI रूट कैरियर</string>
+    <string name="connections_ai_route_via_ssh">SSH के ज़रिए</string>
+    <string name="connections_ai_route_via_reticulum">Reticulum के ज़रिए</string>
+    <string name="connections_field_ai_route_carrier">कैरियर कनेक्शन</string>
+    <string name="connections_dropdown_select_carrier">कनेक्शन चुनें</string>
+    <string name="connections_helper_ai_route">एंडपॉइंट को कैरियर के ज़रिए रूट करें: SSH कैरियर सेशन के ज़रिए लोकल फ़ॉरवर्ड खोलता है, Reticulum मेश पर सेतु बनाता है। Reticulum रूट के लिए कैरियर का कनेक्टेड होना ज़रूरी है।</string>
+    <string name="connections_helper_add_reticulum_first">पहले एक Reticulum कनेक्शन जोड़ें</string>
     <string name="connections_toggle_rdp_nla">नेटवर्क स्तर प्रमाणीकरण (NLA)</string>
     <string name="connections_helper_mosh_required">रिमोट होस्ट पर mosh-server आवश्यक है</string>
     <string name="connections_helper_et_required">रिमोट होस्ट पर etserver आवश्यक है (पोर्ट %1$s)</string>
@@ -478,6 +485,16 @@
     <string name="connections_local_distro_label">OS में खोलें</string>
     <string name="connections_local_distro_active_default">सक्रिय डिस्ट्रो (डिफ़ॉल्ट)</string>
 
+    <string name="connections_section_openai">AI एंडपॉइंट</string>
+    <string name="connections_field_openai_host">सर्वर पता</string>
+    <string name="connections_field_openai_host_hint">IP, होस्टनाम, या पूर्ण http:// URL</string>
+    <string name="connections_field_openai_api_key">API कुंजी (वैकल्पिक)</string>
+    <string name="connections_field_openai_api_key_hint">Bearer टोकन के रूप में भेजा जाता है। बिना कुंजी वाले सर्वर के लिए खाली छोड़ें।</string>
+    <string name="connections_field_openai_path_prefix">पाथ प्रीफ़िक्स (वैकल्पिक)</string>
+    <string name="connections_field_openai_path_prefix_hint">/v1 से पहले जोड़ा जाता है — जैसे /api</string>    <string name="connections_field_openai_protocol">वायर प्रोटोकॉल</string>
+    <string name="connections_field_openai_protocol_hint">डिफ़ॉल्ट रूप से OpenAI-संगत; Ollama, Anthropic और Gemini पथ व प्रमाणीकरण बदलते हैं।</string>
+
+    <string name="connections_openai_url_preview">एंडपॉइंट URL: %1$s</string>
     <!-- Email account -->
     <string name="connections_section_email">ईमेल खाता</string>
     <string name="connections_auth_method_proton_srp">ProtonMail SRP</string>

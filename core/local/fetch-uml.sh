@@ -19,13 +19,17 @@
 # NativeFeatures.uml probe hides the UI.
 #
 # Version-pinned release assets with sha256s (github.com/GlassOnTin/
-# uml-transport, tag uml-guest-1). The kernel is GPL-2.0; its source
-# (branch um-arm64 of zalexdev/linux-um-arm64 at 8897487c5 plus the
-# stub-execve-fallback and android-app-compat patches, both published
+# uml-transport, tag uml-guest-4). The kernel is GPL-2.0; its source
+# (branch um-arm64 of zalexdev/linux-um-arm64 at 7edec4df1 plus the
+# stub-execve-fallback and android-app-compat patches, all published
 # there with the build recipes) is published, which satisfies the
-# distribution terms. When the pin is retired, the fetch fails LOUDLY —
-# bump UML_RELEASE and the sha256s together. Skip with
-# ./gradlew -PskipUml or SKIP_UML=1 (F-Droid).
+# distribution terms. The kernel link output is additionally neutered
+# for the syscalls Android's zygote seccomp filter force-kills
+# (set_robust_list, rseq) — the gate and the patch live in this repo's
+# releases repo, GlassOnTin/uml-transport, under tools/um-arm64/harness/.
+# When the pin is retired,
+# the fetch fails LOUDLY — bump UML_RELEASE and the sha256s together.
+# Skip with ./gradlew -PskipUml or SKIP_UML=1 (F-Droid).
 #
 # UML_RELEASE_MIRROR overrides the base URL (file:// works) for
 # offline/airgapped builds.
@@ -34,14 +38,14 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 OUT="${UML_OUTPUT:-src/main/jniLibs}"
-BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-1}"
+BASE="${UML_RELEASE_MIRROR:-https://github.com/GlassOnTin/uml-transport/releases/download/uml-guest-4}"
 
 # file | sha256
 # Sizes: libvmlinux.so 79307152, libuml-stub.so 1920, libuml-passt.so 608472
 FILES=(
-  "libvmlinux.so|7c557572db754b4794ecf7a9cfcfec58d69977d8f09dc1c71f4d9361e032271f"
+  "libvmlinux.so|71cc9dc73c683a8c00fb533d01e7a1be27974876dcab2068419ea4b272fb387c"
   "libuml-stub.so|83f51f7c45133daa135b595562b09c5e2829f1d0f1e00b7fce2a7695370781fc"
-  "libuml-passt.so|e78fa0a504994f94423085f2b7ddfc891ab27b21a2e9150ec264ed59441c1c44"
+  "libuml-passt.so|17703eb787afcfc57475921f186bec6eae479db00cf60e1763c1a8459c055b36"
 )
 
 if [ "${SKIP_UML:-0}" = "1" ]; then

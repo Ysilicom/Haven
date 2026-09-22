@@ -41,13 +41,14 @@ Tools are grouped into sections by what they touch, and each tool is collapsed �
 expand one for its description and arguments. The tag after each name is its
 consent level:
 
-- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (77 tools).
-- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (54 tools).
-- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (90 tools).
+- **asks every call** — side-effectful or sensitive; a consent sheet describing the specific action on every call (78 tools).
+- **asks once per session** — reversible actions and screen-reading; prompts the first time each session, then proceeds (61 tools).
+- **no per-call prompt** — read-only queries and tap-equivalent UI actions; still behind the endpoint being enabled and the client paired (92 tools).
 
 ## Sections
 
-- [**Device senses (battery, sensors, location, camera)**](#sec-senses) — 4 tools
+- [**Device senses (battery, sensors, location, camera)**](#sec-senses) — 5 tools
+- [**GPS — precise fixes, logging & NTP service**](#sec-gps) — 9 tools
 - [**Connections & profiles**](#sec-connections) — 9 tools
 - [**Terminal, selection & sessions**](#sec-terminal) — 29 tools
 - [**Files, media & clipboard**](#sec-files) — 23 tools
@@ -62,7 +63,7 @@ consent level:
 
 <a id="sec-senses"></a>
 
-## Device senses (battery, sensors, location, camera) (4)
+## Device senses (battery, sensors, location, camera) (5)
 
 One-shot reads of the phone itself: device state, motion/environment sensors, a single location fix, and a single camera frame.
 
@@ -94,12 +95,102 @@ Take one location fix: latitude, longitude, accuracy, altitude/speed/bearing whe
 </details>
 
 <details markdown="1">
+<summary><code>get_location_precise</code> · asks every call</summary>
+
+One high-quality GPS-only fix: waits up to timeoutMs while a short GPS session collects fixes, then reports the best (lowest accuracy radius) — or with averageWindowMs, the position average over that window, which beats any single phone fix for precision (reported accuracy shrinks ~√n over the fixes seen, floored at 3 m because averaging beats noise, not systematic error). Adds what get_location doesn't: vertical accuracy, speed/bearing, satellites used in fix, HDOP, and the GNSS time-disciplined UTC. Requires location permission — if Haven doesn't hold it and Shizuku is running, the call grants it silently (this consent sheet is the gate); otherwise the error names the Settings path. Background throttling applies as with get_location.
+
+- `averageWindowMs` (integer) — Average every fix seen in this trailing window instead of picking the best single fix (1000–60000). Position averaging is the phone-GPS precision trick: fewer metres of scatter, honest √n confidence. Default off.
+- `timeoutMs` (integer) — How long to keep collecting fixes before returning the best (1000–60000, default 10000). A fix that reaches ≤15 m accuracy after ~2 s ends the wait early.
+
+</details>
+
+<details markdown="1">
 <summary><code>read_sensors</code> · asks once per session</summary>
 
 One-shot read of the phone's motion and environment sensors — accelerometer (m/s²), gyroscope (rad/s), magnetometer (µT), pressure (hPa), light (lux), ambient temperature (°C), relative humidity (%), proximity (cm). Registers a short sampling window (default 300 ms) and returns the latest value plus the sample count for each sensor present; sensors the device lacks are simply absent from the result. Needs no Android permission (normal-rate sampling, not high-rate). A single sample is NOT an orientation solution — no fusion/rotation vector is computed here; request sensors explicitly when you only need one. Gated once per session like read_logcat.
 
 - `sensors` (string[]) — Optional filter: read only these sensors (names: accelerometer, gyroscope, magnetometer, pressure, light, ambient_temperature, relative_humidity, proximity). Omit to read every sensor the device has.
 - `windowMs` (integer) — Sampling window in milliseconds (50–2000, default 300). More window = more samples for a steadier 'latest' value, at the cost of the call's wall time.
+
+</details>
+
+<a id="sec-gps"></a>
+
+## GPS — precise fixes, logging & NTP service (9)
+
+The phone's GNSS as a continuous capability: precise fix collection, foreground-service GPS logging, and the GPS-disciplined NTP service.
+
+<details markdown="1">
+<summary><code>attach_gps_to_guest</code> · asks once per session</summary>
+
+Expose this phone's GPS to the Haven Linux guest as a real NMEA device: an abstract-namespace socket (\0haven-gps) streams the chipset's raw NMEA sentences (GGA/RMC/GSV/…) into the guest, and the staged `haven-gps` helper materialises them as a PTY at /run/haven/gps0 — gpsd, gpspipe, chrony, or any character-device consumer "just sees a GPS". The socket is abstract-namespace, not TCP loopback: only processes sharing Haven's network namespace (the proot guest) can reach it. Attaching starts a 1 Hz GPS session for the bridge; it keeps running (even screen-off, via the same session contract as start_gps_log) until detach_gps_from_guest. Returns socketName, the in-guest helperPath, a helperCommand to start the PTY, and a verifyCommand to confirm NMEA is flowing. Requires the master opt-in first: Settings → "Expose GPS to the Linux guest" (or the gps_guest_exposure_enabled preference) — once exposed, any process in the guest can read the phone's position, so the switch is deliberately separate from per-call consent.
+
+</details>
+
+<details markdown="1">
+<summary><code>detach_gps_from_guest</code> · no per-call prompt</summary>
+
+Stop the GPS→guest bridge started by attach_gps_to_guest: the \0haven-gps socket closes, /run/haven/gps0 goes dead in the guest, and the bridge's GPS session is released (unless logging or NTP still needs one). Reports the sentences served and readers that connected. The teardown counterpart to attach_gps_to_guest.
+
+</details>
+
+<details markdown="1">
+<summary><code>get_gps_status</code> · asks once per session</summary>
+
+Full GNSS status: the current fix (lat/lon/accuracy/altitude/speed/bearing with the fix's age), satellite detail from GnssStatus (in view / used in fix, per-constellation counts, mean C/N0 of used satellites, top C/N0 values), HDOP from the GGA sentence, the GPS time discipline (source gnss_clock|nmea, jitter, uncertainty, holdover — the model the NTP service serves), and the state of gps logging and the NTP service. When no GPS session is running, satellites/discipline are absent and only the last-known fix appears — start one via get_location_precise, start_gps_log, or start_ntp_service to wake the engine. Read of device metadata and the current fix; gated once per session like read_sensors.
+
+</details>
+
+<details markdown="1">
+<summary><code>list_gps_logs</code> · no per-call prompt</summary>
+
+List GPS logs written by start_gps_log: id, path, size, record count, and which one is active. Metadata only — read_gps_log pulls records. Read-only.
+
+</details>
+
+<details markdown="1">
+<summary><code>read_gps_log</code> · asks once per session</summary>
+
+Read the last N records of a GPS log file (id from list_gps_logs): fix records with position/accuracy/satellite counts, plus optional nmea/raw records. A tail read, not a stream — the whole file's history is on disk at the returned path. Reading a log is reading a track of where the phone was, so it's gated once per session rather than free like list_gps_logs.
+
+- `id` (string, required) — Log id from list_gps_logs (the file name without .jsonl).
+- `lines` (integer) — How many trailing records to return (1–500, default 50).
+
+</details>
+
+<details markdown="1">
+<summary><code>start_gps_log</code> · asks once per session</summary>
+
+Start continuous GPS logging in a location-type foreground service: every fix is appended as a JSONL record to gps-logs/<id>.jsonl under Haven's external files dir (readable by the agent via read_gps_log and by the guest's hostfs share). Each fix record: t, lat, lon, acc, alt, vAcc, spd, brg, satsFix, satsView, cn0Mean, hdop, gpsUtcMs (disciplined GPS time when available); optional `nmea` records the raw sentences, `raw` records GnssClock+measurements per second (large — minutes of raw logging is hundreds of MB). Pass `capBytes` (default 128 MiB) to bound it; the log stops with stoppedReason when the cap hits rather than rotating silently. The foreground-service notification shows live counters; stop with stop_gps_log. Requires location permission (Shizuku self-grant path as usual) — and the consent sheet tap that approves this call is what keeps the foreground-service start legal on Android 12+.
+
+- `capBytes` (integer) — Stop at this file size (bytes). Default 134217728 (128 MiB).
+- `intervalMs` (integer) — Fix interval in ms (1000–60000, default 1000). 1 Hz is the battery-friendly default; the raw-measurement stream is independent of this.
+- `nmea` (boolean) — Also record every NMEA sentence (default false).
+- `raw` (boolean) — Also record GnssMeasurements (clock + per-satellite raw) — large, for post-processing (default false).
+
+</details>
+
+<details markdown="1">
+<summary><code>start_ntp_service</code> · asks once per session</summary>
+
+Start an NTP service on this phone, disciplined by GPS time: an SNTP responder (NTPv4 header) that answers client polls with stratum-1 time built from the phone's GNSS clock (GnssMeasurements' GnssClock when the chipset reports it, else NMEA RMC UTC) — never from Android's network-synced wall clock. Clients point at this phone like any NTP server, e.g. chrony: `server <phone-lan-ip> port <port> iburst`. UDP port 123 is privileged on Android, so the port defaults to 10123 and must be ≥1024 — name it explicitly in the client. bind "loopback" (default) serves 127.0.0.1 only; "lan" also binds the Wi-Fi/Ethernet site-local address so other devices on the network (or through Haven's tunnels) can use it. While GPS samples are flowing the answer is stratum 1 / refid GPS / rootDispersion = the measured uncertainty; after 30 s without a fix the answer flips to LI=3 (unsynchronised) so clients disqualify the source honestly rather than trusting a stale model. Needs a GPS session (started here) and location permission (Shizuku self-grant path as usual).
+
+- `bind` (string) — "loopback" (default) or "lan" — the latter also binds the device's Wi-Fi/Ethernet IPv4 so LAN peers can query the service.
+- `port` (integer) — UDP port to serve on (1024–65535, default 10123). 123 needs root on Android — not offered.
+
+</details>
+
+<details markdown="1">
+<summary><code>stop_gps_log</code> · asks once per session</summary>
+
+Stop the active GPS log (started with start_gps_log), closing its file and (when nothing else needs GPS) the foreground service and engine. Returns the id, file path, and the fix count written.
+
+</details>
+
+<details markdown="1">
+<summary><code>stop_ntp_service</code> · asks once per session</summary>
+
+Stop the NTP service and release its GPS session (unless logging still needs it).
 
 </details>
 
@@ -122,7 +213,7 @@ Initiate a connection for a saved profile via the same code path a UI tap uses (
 <details markdown="1">
 <summary><code>create_connection</code> · asks every call</summary>
 
-Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, SPICE, EMAIL, RETICULUM. SSH-family fields: username (required), password (optional, stored), keyId (optional — references list_ssh_keys), ignoreSavedKeys (force password-only auth, never offer saved keys), useMosh (turn an SSH profile into a Mosh profile), sessionManager (optional: TMUX | ZELLIJ | SCREEN | BYOBU | HERDR — attach through that multiplexer; omit for a plain shell), remoteCommand (run a command via an SSH exec request instead of a login shell — e.g. 'tmux new -A -s work' to attach-or-create that session before shell startup files run) + requestPty (PTY for it, default true), bindAddress (local address the outgoing SSH socket binds to, ssh -b — direct connections only). SMB: smbShare (required), username + password, smbDomain. VNC: vncUsername, vncPassword, vncPort, and vncSshForward + vncSshProfileId to tunnel VNC through a saved SSH profile. RDP: rdpUsername (required), rdpPassword, rdpDomain, rdpPort. SPICE: spicePassword (optional ticket — no username/domain), spicePort (default 5900), and spiceSshForward + spiceSshProfileId to tunnel SPICE through a saved SSH profile. EMAIL: emailProvider ("imap" default, or "proton"); username = the email address; password = the account/app-password; for IMAP set emailServer (required) + emailPort (993) + emailSmtpPort (465) + emailTls (true), plus emailSmtpServer when the SMTP host differs (e.g. smtp.gmail.com); for Proton add emailMailboxPassword if two-password mode. EMAIL host is optional (the tunnel-ingress/bastion SPA/knock guards), not the mail server. BTSERIAL (Bluetooth-serial console, #406): host = the paired device's Bluetooth MAC (from list_bluetooth_devices); no other fields. The device must already be paired in Android Settings. BLESERIAL (Bluetooth-LE-serial console — Nordic UART Service / HM-10): host = the BLE peripheral's MAC; no other fields. It needn't be paired — scan-and-pick in the editor; the GATT service/characteristics are auto-detected (NUS 6E400001…, then HM-10 FFE0/FFE1). USBSERIAL (USB-serial console, #408 — Arduino / Duet3D G-code / ESP32 / USB-TTL): host = the device's vendorId:productId hex, e.g. 1a86:7523, from list_usb_devices; usbBaudRate = baud (default 115200); usbDataBits/usbParity/usbStopBits/usbFlowControl set the rest of the line format (default 8N1, no flow control). Plug the adapter in first; connect_profile pops the Android USB-permission prompt. Chipsets: CDC-ACM, CH34x, FTDI, CP21xx, Prolific. RETICULUM: destinationHash (required, 32 hex chars) is the address; reticulumHost + reticulumPort are only how this phone reaches the mesh, defaulting to 127.0.0.1:37428 which is a Sideband or Columba shared instance on this device — any other host is a TCP gateway. reticulumNetworkName + reticulumPassphrase set IFAC on an authenticated gateway. The new profile id is returned for follow-up calls (set_profile_routing, connect_profile). For rclone / local create the profile in the UI — those need an OAuth flow the agent can't drive.
+Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, SPICE, EMAIL, RETICULUM. SSH-family fields: username (required), password (optional, stored), keyId (optional — references list_ssh_keys), ignoreSavedKeys (force password-only auth, never offer saved keys), useMosh (turn an SSH profile into a Mosh profile), sessionManager (optional: TMUX | ZELLIJ | SCREEN | BYOBU | HERDR | PSMUX — attach through that multiplexer; omit for a plain shell), remoteCommand (run a command via an SSH exec request instead of a login shell — e.g. 'tmux new -A -s work' to attach-or-create that session before shell startup files run) + requestPty (PTY for it, default true), bindAddress (local address the outgoing SSH socket binds to, ssh -b — direct connections only). SMB: smbShare (required), username + password, smbDomain. VNC: vncUsername, vncPassword, vncPort, and vncSshForward + vncSshProfileId to tunnel VNC through a saved SSH profile. RDP: rdpUsername (required), rdpPassword, rdpDomain, rdpPort. SPICE: spicePassword (optional ticket — no username/domain), spicePort (default 5900), and spiceSshForward + spiceSshProfileId to tunnel SPICE through a saved SSH profile. EMAIL: emailProvider ("imap" default, or "proton"); username = the email address; password = the account/app-password; for IMAP set emailServer (required) + emailPort (993) + emailSmtpPort (465) + emailTls (true), plus emailSmtpServer when the SMTP host differs (e.g. smtp.gmail.com); for Proton add emailMailboxPassword if two-password mode. EMAIL host is optional (the tunnel-ingress/bastion SPA/knock guards), not the mail server. OPENAI (OpenAI-compatible endpoint, e.g. llama-server or CLIProxyAPI): host = server IP/hostname (a full http:// URL also works), port = TCP port (default 80), optional password arg = the API key (sent as a Bearer token; omit for keyless servers), openaiPathPrefix = optional path inserted before /v1 (e.g. "/api"). Connect verifies via GET /v1/models; chat via the chat screen or openai_chat. BTSERIAL (Bluetooth-serial console, #406): host = the paired device's Bluetooth MAC (from list_bluetooth_devices); no other fields. The device must already be paired in Android Settings. BLESERIAL (Bluetooth-LE-serial console — Nordic UART Service / HM-10): host = the BLE peripheral's MAC; no other fields. It needn't be paired — scan-and-pick in the editor; the GATT service/characteristics are auto-detected (NUS 6E400001…, then HM-10 FFE0/FFE1). USBSERIAL (USB-serial console, #408 — Arduino / Duet3D G-code / ESP32 / USB-TTL): host = the device's vendorId:productId hex, e.g. 1a86:7523, from list_usb_devices; usbBaudRate = baud (default 115200); usbDataBits/usbParity/usbStopBits/usbFlowControl set the rest of the line format (default 8N1, no flow control). Plug the adapter in first; connect_profile pops the Android USB-permission prompt. Chipsets: CDC-ACM, CH34x, FTDI, CP21xx, Prolific. RETICULUM: destinationHash (required, 32 hex chars) is the address; reticulumHost + reticulumPort are only how this phone reaches the mesh, defaulting to 127.0.0.1:37428 which is a Sideband or Columba shared instance on this device — any other host is a TCP gateway. reticulumNetworkName + reticulumPassphrase set IFAC on an authenticated gateway. The new profile id is returned for follow-up calls (set_profile_routing, connect_profile). For rclone / local create the profile in the UI — those need an OAuth flow the agent can't drive.
 
 - `connectionType` (string, required) — SSH | SMB | VNC | RDP | SPICE | EMAIL | BTSERIAL | BLESERIAL | USBSERIAL | RETICULUM | GUEST.
 - `host` (string, required) — Target hostname or IP. For EMAIL this is the optional tunnel ingress/bastion (SPA/knock target), NOT the mail server — leave blank for a direct IMAP connection.
@@ -139,10 +230,12 @@ Create a saved connection profile. Supports connectionType=SSH, SMB, VNC, RDP, S
 - `emailTls` (boolean) — EMAIL/imap only: implicit TLS (SSL). Default true.
 - `ignoreSavedKeys` (boolean) — SSH-family only: when true, authenticate with password (and keyboard-interactive) only — saved keystore keys are never offered to the server. Lets a profile target a password-only server without the auto-key-offer suppressing the password prompt (#121). Default false.
 - `keyId` (string) — SSH only: id of a saved SSH key (from list_ssh_keys) to authenticate with. Mutually optional with password.
+- `openaiPathPrefix` (string) — OPENAI only: optional path prefix inserted before /v1 (e.g. "/api" for CLIProxyAPI).
 - `password` (string) — Password (stored). Optional for SSH if a key is used; some VNC/SMB setups allow guest.
 - `port` (integer) — TCP port. Defaults: SSH 22, SMB 445, VNC 5900, RDP 3389, SPICE 5900. Type-specific vncPort/rdpPort/spicePort override this.
 - `portKnockDelayMs` (integer) — Inter-knock delay in ms (default 100). Ignored when portKnockSequence is empty.
 - `portKnockSequence` (string) — Optional port-knock sequence fired before the real connect. Format: whitespace/comma-separated 'port[/proto]' tokens — e.g. '7000 8000 9000' (all TCP) or '7000/tcp 8000/udp 9000/tcp'. Empty = disabled.
+- `protocol` (string) — OPENAI only: wire protocol — OPENAI (default, OpenAI-compatible /v1/chat/completions), OLLAMA (native /api), ANTHROPIC (Messages API /v1/messages), or GEMINI (generativelanguage /v1beta/models/{model}:generateContent).
 - `rdpDomain` (string) — AD domain (RDP). Optional.
 - `rdpPassword` (string) — Windows password (RDP).
 - `rdpPort` (integer) — RDP only: TCP port (default 3389). Overrides the generic `port`.
@@ -215,7 +308,7 @@ List Bluetooth Classic devices already paired (bonded) with the phone — { addr
 <details markdown="1">
 <summary><code>list_connections</code> · no per-call prompt</summary>
 
-List saved connection profiles (SSH, Mosh, VNC, RDP, SMB, rclone, local, Reticulum). Secrets like passwords and keys are redacted. SSH profiles also report `sshOptions` (the ssh_config-style lines set on the profile) and `sshEngine` — "jsch" (default) or "sshlib" (the experimental whole-connection engine, opted into with the 'HavenSshEngine sshlib' directive) — so an agent that sets the engine can confirm which one a profile is actually on.
+List saved connection profiles (SSH, Mosh, VNC, RDP, SMB, rclone, local, Reticulum, OPENAI). Secrets like passwords and keys are redacted. SSH profiles also report `sshOptions` (the ssh_config-style lines set on the profile) and `sshEngine` — "jsch" (default) or "sshlib" (the experimental whole-connection engine, opted into with the 'HavenSshEngine sshlib' directive) — so an agent that sets the engine can confirm which one a profile is actually on.
 
 </details>
 
@@ -234,7 +327,7 @@ Run one command on a saved SSH connection over an exec channel (no terminal sess
 <details markdown="1">
 <summary><code>update_connection</code> · asks every call</summary>
 
-Edit fields on an existing connection profile (load → change → save). Pass profileId (required) plus only the fields you want to change — anything omitted is left as-is. Common SSH-family fields: label, host, port, username, password (stored, mapped to the profile's transport), keyId, ignoreSavedKeys (force password-only auth), useMosh, forwardAgent, remoteCommand (SSH exec instead of a login shell; empty string clears) + requestPty, bindAddress (ssh -b; direct connections only, empty string clears). Desktop tunnels: vncSshForward + vncSshProfileId, rdpSshForward + rdpSshProfileId, spiceSshForward + spiceSshProfileId, smbSshForward + smbSshProfileId. USB/IP auto-forward: usbForwardVidPid (export a phone-attached USB device to this host on every connect). Passwords are stored encrypted and never echoed back. For routing/proxy use set_profile_routing; for port-knock/SPA use set_port_knock/set_spa. Returns the updated profile (secrets redacted).
+Edit fields on an existing connection profile (load → change → save). Pass profileId (required) plus only the fields you want to change — anything omitted is left as-is. Common SSH-family fields: label, host, port, username, password (stored, mapped to the profile's transport), keyId, ignoreSavedKeys (force password-only auth), useMosh, forwardAgent, remoteCommand (SSH exec instead of a login shell; empty string clears) + requestPty, bindAddress (ssh -b; direct connections only, empty string clears). Desktop tunnels: vncSshForward + vncSshProfileId, rdpSshForward + rdpSshProfileId, spiceSshForward + spiceSshProfileId, smbSshForward + smbSshProfileId. USB/IP auto-forward: usbForwardVidPid (export a phone-attached USB device to this host on every connect). Passwords are stored encrypted and never echoed back. OPENAI: password maps to the API key (empty string clears). For routing/proxy use set_profile_routing; for port-knock/SPA use set_port_knock/set_spa. Returns the updated profile (secrets redacted).
 
 - `profileId` (string, required) — Profile id from list_connections.
 - `bindAddress` (string) — SSH only (#636): local address the outgoing SSH socket binds to (ssh -b). Direct connections only — refused on profiles with a proxy or jump host. Empty string clears.
@@ -245,8 +338,10 @@ Edit fields on an existing connection profile (load → change → save). Pass p
 - `keyId` (string) — SSH only: id of a saved key (list_ssh_keys). Empty string clears.
 - `label` (string) — New user-facing label.
 - `moshServerCommand` (string) — Mosh only: override the command Haven runs over SSH to start mosh-server (default 'mosh-server new -s -c 256 …'). It must print a 'MOSH CONNECT <port> <key>' line, which Haven parses to find the session — so a wrapper can point Haven at a different port (e.g. scripts/mosh-fault-rig.py bootstrap, which puts a fault-injecting relay in front). Empty string restores the default.
+- `openaiPathPrefix` (string) — OPENAI only: path prefix inserted before /v1 (e.g. "/api"). Empty string clears.
 - `password` (string) — New password (stored encrypted). Mapped to the profile's transport (SSH/VNC/RDP/SMB). Pass an empty string to clear it.
 - `port` (integer) — New TCP port.
+- `protocol` (string) — OPENAI only: wire protocol — OPENAI (default), OLLAMA, ANTHROPIC, or GEMINI. Empty string clears (back to OPENAI).
 - `rdpSshForward` (boolean) — RDP only: tunnel through a saved SSH profile (set rdpSshProfileId).
 - `rdpSshProfileId` (string) — RDP only: SSH profile id to tunnel through. Empty string clears.
 - `remoteCommand` (string) — SSH only (#436): run this command via an SSH exec request instead of a login shell (e.g. 'tmux new -A -s work'). Empty string clears (back to the normal shell).
@@ -390,7 +485,7 @@ Return the current text-selection state for an active terminal session: { active
 <details markdown="1">
 <summary><code>list_sessions</code> · no per-call prompt</summary>
 
-List currently registered sessions across all transports (ssh, mosh, et, reticulum, rdp, smb, local, mail, and Bluetooth/BLE/USB serial) with sessionId, profileId, label, status (connecting, connected, reconnecting, disconnected, error), transport, and isAgentRepl — a screen heuristic (Claude Code TUI chrome in the bottom lines) marking which terminal session is an agent REPL, so a conversation peer can be picked without guessing; null when the session has no attached terminal tab. SSH sessions additionally include sessionManager, chosenSessionName (the stable tmux/zellij identity that survives reconnects), channel state, jump-session linkage, and active port forwards.
+List currently registered sessions across all transports (ssh, mosh, et, reticulum, rdp, smb, local, mail, openai, and Bluetooth/BLE/USB serial) with sessionId, profileId, label, status (connecting, connected, reconnecting, disconnected, error), transport, and isAgentRepl — a screen heuristic (Claude Code TUI chrome in the bottom lines) marking which terminal session is an agent REPL, so a conversation peer can be picked without guessing; null when the session has no attached terminal tab. SSH sessions additionally include sessionManager, chosenSessionName (the stable tmux/zellij identity that survives reconnects), channel state, jump-session linkage, and active port forwards.
 
 </details>
 
@@ -2325,7 +2420,7 @@ Return the consent/pairing prompts Haven is currently showing or holding, oldest
 <details markdown="1">
 <summary><code>get_preference</code> · no per-call prompt</summary>
 
-Read a Haven user preference by key. Whitelisted keys: terminal_scrollback_rows, terminal_tap_to_position_cursor, terminal_font_size, terminal_color_scheme, terminal_auto_switch_scheme, terminal_light_color_scheme, terminal_dark_color_scheme, terminal_locale, mouse_input_enabled, terminal_right_click, terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs; default true), mcp_tunnel_endpoint_profile_id, mcp_wireguard_enabled, mcp_lan_bind_enabled, mcp_wireguard_tunnel_config_id, usb_guest_exposure_enabled, connection_logging_enabled, verbose_logging_enabled, remap_low_ports (#300 proot launch toggle), share_storage_with_guest (#301 proot launch toggle), bind_android_system (#304 proot launch toggle), proot_dns_mode (#446 - system|public|custom), proot_dns_servers (custom nameservers), toolbar_layout (string — the terminal keyboard toolbar layout as JSON; see set_preference for the shape), custom_desktop_command (string — the Custom (X11) desktop's session command), update_check_enabled (bool — #578 opt-in launch-time update check; off by default, and inert on a copy not signed with the GitHub-release key), update_check_last_run_ms (long — epoch ms of the last launch-time check; the once-a-day throttle is measured from it), update_check_last_notified_version (string — the version the user was last notified about; blank if never). Returns { key, value } where value's type follows the preference's type (int / boolean / string). Colour-scheme values are TerminalColorScheme enum names.
+Read a Haven user preference by key. Whitelisted keys: terminal_scrollback_rows, terminal_tap_to_position_cursor, terminal_font_size, terminal_color_scheme, terminal_auto_switch_scheme, terminal_light_color_scheme, terminal_dark_color_scheme, terminal_locale, mouse_input_enabled, terminal_right_click, terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs; default true), mcp_tunnel_endpoint_profile_id, mcp_wireguard_enabled, mcp_lan_bind_enabled, mcp_wireguard_tunnel_config_id, usb_guest_exposure_enabled, gps_guest_exposure_enabled, connection_logging_enabled, verbose_logging_enabled, remap_low_ports (#300 proot launch toggle), share_storage_with_guest (#301 proot launch toggle), bind_android_system (#304 proot launch toggle), proot_dns_mode (#446 - system|public|custom), proot_dns_servers (custom nameservers), toolbar_layout (string — the terminal keyboard toolbar layout as JSON; see set_preference for the shape), custom_desktop_command (string — the Custom (X11) desktop's session command), update_check_enabled (bool — #578 opt-in launch-time update check; off by default, and inert on a copy not signed with the GitHub-release key), update_check_last_run_ms (long — epoch ms of the last launch-time check; the once-a-day throttle is measured from it), update_check_last_notified_version (string — the version the user was last notified about; blank if never). Returns { key, value } where value's type follows the preference's type (int / boolean / string). Colour-scheme values are TerminalColorScheme enum names.
 
 - `key` (string, required) — Preference key (see whitelist in description).
 
@@ -2410,7 +2505,7 @@ Revoke (delete) a standing policy by id — see list_standing_policies. Pure pri
 <details markdown="1">
 <summary><code>set_preference</code> · asks once per session</summary>
 
-Write a Haven user preference. Whitelisted keys (and their types): terminal_scrollback_rows (int 100..25000), terminal_tap_to_position_cursor (bool), terminal_font_size (int 8..32), mouse_input_enabled (bool), terminal_right_click (bool), terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs), terminal_color_scheme (string — a TerminalColorScheme enum name, e.g. HAVEN, DRACULA, NORD, GRUVBOX; case-insensitive), terminal_auto_switch_scheme (bool — when true the active scheme follows system light/dark via the light/dark keys), terminal_light_color_scheme (string scheme name), terminal_dark_color_scheme (string scheme name), terminal_background_opacity (float 0.0..1.0 — below 1.0 the terminal renders over the device wallpaper), terminal_locale (string, e.g. zh_CN.UTF-8 — exported to local terminal sessions as LANG/LC_ALL; glibc distros need the locale generated first), mcp_tunnel_endpoint_profile_id (string SSH profile id, empty to clear), mcp_wireguard_enabled (bool), mcp_lan_bind_enabled (bool — also bind the device Wi-Fi/LAN address for direct same-network reach), mcp_wireguard_tunnel_config_id (string tunnel config id the MCP server keeps up as its WG carrier, empty to clear), usb_guest_exposure_enabled (bool — master gate for usb_attach_to_guest), connection_logging_enabled (bool — audit-log connection lifecycle events to Settings → View connection log; off by default; enable before reproducing a connection issue, then read get_connection_log), verbose_logging_enabled (bool - per-session transport tracing, captured into each ConnectionLog entry's verboseLog; off by default. Needed AS WELL AS connection_logging_enabled: the RDP decode breakdown, the negotiated graphics capabilities and the discarded-bitmap detail exist nowhere else), gpu_use_venus (bool — experimental venus+zink GPU stack for accelerated desktops; off = virgl/virpipe), remap_low_ports (bool — #300 proot launch toggle: remap guest privileged ports +2000), share_storage_with_guest (bool — #301 proot launch toggle: mount /storage + /sdcard into the local guest; default on), bind_android_system (bool — #304 proot launch toggle: bind Android's read-only /system, /vendor, /apex, /product, /system_ext, /odm into the guest so it can run Android native binaries like getprop/toybox; default off, exposes device internals), proot_dns_mode (string - #446: which resolvers the local Linux guest gets in /etc/resolv.conf. "system" (default) uses the network's own resolvers, "public" uses Google 8.8.8.8 + Cloudflare 1.1.1.1 (the old hardcoded pair), "custom" uses proot_dns_servers. Networks that block outbound port 53 to anything but their own resolver make "public" fail silently - package installs just hang), proot_dns_servers (string - comma/space separated IP literals for "custom"; hostnames are rejected because resolv.conf has no way to resolve them), toolbar_layout (string — the terminal keyboard toolbar as JSON: a 2-element array of rows, each row an array whose elements are either a built-in key id string ("esc", "paste", "text_input", "arrow_up", "ctrl", "home", … — see ToolbarKey) or a custom-key object {"label":"…","send":"…"}; set validates against ToolbarLayout and replaces the WHOLE layout, so get_preference it first, edit, and write it back — e.g. add "text_input" to a row to surface the floating-text-input key), custom_desktop_command (string — the Custom (X11) desktop session command run at its next start; the command IS the session: when it exits the desktop stops, and a command that dies at startup surfaces its output in the desktop row's error state), update_check_enabled (bool — #578: look for a newer GitHub release when Haven opens, at most once an hour. Off by default. Turning it ON is what arms the launch-time path; check_for_update runs a check right now regardless)), update_check_last_run_ms (long epoch ms — set to 0 to CLEAR the once-an-hour throttle), update_check_last_notified_version (string — set to "" to CLEAR the already-told-you dedup). Those two exist so the launch path can be exercised for real: clear whichever gate you are testing, restart Haven, and watch checkOnLaunch run. check_for_update deliberately cannot substitute — it runs the on-demand check, which posts no notification and touches neither gate. Takes effect on the next local session/command. Returns { key, value }.
+Write a Haven user preference. Whitelisted keys (and their types): terminal_scrollback_rows (int 100..25000), terminal_tap_to_position_cursor (bool), terminal_font_size (int 8..32), mouse_input_enabled (bool), terminal_right_click (bool), terminal_tab_titles_follow_session (bool — tabs attached to tmux/zellij/screen show the session name instead of titles set by running programs), terminal_color_scheme (string — a TerminalColorScheme enum name, e.g. HAVEN, DRACULA, NORD, GRUVBOX; case-insensitive), terminal_auto_switch_scheme (bool — when true the active scheme follows system light/dark via the light/dark keys), terminal_light_color_scheme (string scheme name), terminal_dark_color_scheme (string scheme name), terminal_background_opacity (float 0.0..1.0 — below 1.0 the terminal renders over the device wallpaper), terminal_locale (string, e.g. zh_CN.UTF-8 — exported to local terminal sessions as LANG/LC_ALL; glibc distros need the locale generated first), mcp_tunnel_endpoint_profile_id (string SSH profile id, empty to clear), mcp_wireguard_enabled (bool), mcp_lan_bind_enabled (bool — also bind the device Wi-Fi/LAN address for direct same-network reach), mcp_wireguard_tunnel_config_id (string tunnel config id the MCP server keeps up as its WG carrier, empty to clear), usb_guest_exposure_enabled (bool — master gate for usb_attach_to_guest), gps_guest_exposure_enabled (bool — master gate for attach_gps_to_guest), connection_logging_enabled (bool — audit-log connection lifecycle events to Settings → View connection log; off by default; enable before reproducing a connection issue, then read get_connection_log), verbose_logging_enabled (bool - per-session transport tracing, captured into each ConnectionLog entry's verboseLog; off by default. Needed AS WELL AS connection_logging_enabled: the RDP decode breakdown, the negotiated graphics capabilities and the discarded-bitmap detail exist nowhere else), gpu_use_venus (bool — experimental venus+zink GPU stack for accelerated desktops; off = virgl/virpipe), remap_low_ports (bool — #300 proot launch toggle: remap guest privileged ports +2000), share_storage_with_guest (bool — #301 proot launch toggle: mount /storage + /sdcard into the local guest; default on), bind_android_system (bool — #304 proot launch toggle: bind Android's read-only /system, /vendor, /apex, /product, /system_ext, /odm into the guest so it can run Android native binaries like getprop/toybox; default off, exposes device internals), proot_dns_mode (string - #446: which resolvers the local Linux guest gets in /etc/resolv.conf. "system" (default) uses the network's own resolvers, "public" uses Google 8.8.8.8 + Cloudflare 1.1.1.1 (the old hardcoded pair), "custom" uses proot_dns_servers. Networks that block outbound port 53 to anything but their own resolver make "public" fail silently - package installs just hang), proot_dns_servers (string - comma/space separated IP literals for "custom"; hostnames are rejected because resolv.conf has no way to resolve them), toolbar_layout (string — the terminal keyboard toolbar as JSON: a 2-element array of rows, each row an array whose elements are either a built-in key id string ("esc", "paste", "text_input", "arrow_up", "ctrl", "home", … — see ToolbarKey) or a custom-key object {"label":"…","send":"…"}; set validates against ToolbarLayout and replaces the WHOLE layout, so get_preference it first, edit, and write it back — e.g. add "text_input" to a row to surface the floating-text-input key), custom_desktop_command (string — the Custom (X11) desktop session command run at its next start; the command IS the session: when it exits the desktop stops, and a command that dies at startup surfaces its output in the desktop row's error state), update_check_enabled (bool — #578: look for a newer GitHub release when Haven opens, at most once an hour. Off by default. Turning it ON is what arms the launch-time path; check_for_update runs a check right now regardless)), update_check_last_run_ms (long epoch ms — set to 0 to CLEAR the once-an-hour throttle), update_check_last_notified_version (string — set to "" to CLEAR the already-told-you dedup). Those two exist so the launch path can be exercised for real: clear whichever gate you are testing, restart Haven, and watch checkOnLaunch run. check_for_update deliberately cannot substitute — it runs the on-demand check, which posts no notification and touches neither gate. Takes effect on the next local session/command. Returns { key, value }.
 
 - `key` (string, required) — Preference key (see whitelist).
 - `value` (any, required) — New value. Type must match the key's type — int for the *_rows / *_size keys, bool for the rest.
