@@ -28,49 +28,64 @@ echo "  仓库: $REPO"
 echo "  构建模式: assembleArm64FullRelease (包含 R8 压缩优化与资源缩减)"
 echo "================================================================="
 
-# 1. 检查是否有未推送的提交，或创建触发提交
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
-    echo "⚠️ 当前分支为 $CURRENT_BRANCH，建议切换到 $BRANCH 分支运行。"
-fi
+RUN_ID="${1:-}"
 
-# 检查远程是否有更新
-git fetch origin "$BRANCH" 2>/dev/null || true
-LOCAL_SHA="$(git rev-parse HEAD)"
-REMOTE_SHA="$(git rev-parse "origin/$BRANCH")"
-
-if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
-    echo "ℹ️ 本地代码与远程一致，正在创建空提交触发云端 CI 构建..."
-    git commit --allow-empty -m "ci: trigger arm64 release build with R8 [$(date -u +'%Y-%m-%d %H:%M:%S UTC')]"
-    git push origin "$BRANCH"
-    TARGET_SHA="$(git rev-parse HEAD)"
-else
-    echo "ℹ️ 检测到未推送的提交，正在推送到远程 origin/$BRANCH..."
-    git push origin "$BRANCH"
-    TARGET_SHA="$(git rev-parse HEAD)"
-fi
-
-echo "✓ 提交已推送到 GitHub, 目标 commit SHA: $TARGET_SHA"
-echo ""
-
-# 2. 定时轮询等待 GitHub Actions 创建 Workflow Run
-echo "⏳ 正在等待 GitHub Actions 注册并启动工作流..."
-RUN_ID=""
-for i in {1..20}; do
-    RUNS_JSON=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs?head_sha=$TARGET_SHA")
-    RUN_ID=$(echo "$RUNS_JSON" | jq -r '.workflow_runs[]? | select(.name=="'"$WORKFLOW_NAME"'") | .id' | head -n 1)
-    if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+if [ -z "$RUN_ID" ]; then
+    CURRENT_HEAD="$(git rev-parse HEAD)"
+    RUNS_JSON=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs?head_sha=$CURRENT_HEAD")
+    EXISTING_RUN_ID=$(echo "$RUNS_JSON" | jq -r '.workflow_runs[]? | select(.name=="'"$WORKFLOW_NAME"'" and (.status=="in_progress" or .status=="queued")) | .id' | head -n 1)
+    if [ -n "$EXISTING_RUN_ID" ] && [ "$EXISTING_RUN_ID" != "null" ]; then
+        echo "ℹ️ 检测到当前 HEAD 存在进行中的 CI 构建任务 (Run ID: $EXISTING_RUN_ID)，直接恢复监控..."
+        RUN_ID="$EXISTING_RUN_ID"
         RUN_URL=$(echo "$RUNS_JSON" | jq -r '.workflow_runs[]? | select(.id=='"$RUN_ID"') | .html_url')
-        echo "✓ 成功检测到工作流 Run ID: $RUN_ID"
         echo "  网页监控地址: $RUN_URL"
-        break
     fi
-    sleep 3
-done
+fi
 
-if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
-    echo "❌ 超时：未在 GitHub Actions 中检测到对应 commit 的构建任务，请检查 GitHub 仓库设置。" >&2
-    exit 1
+if [ -z "$RUN_ID" ]; then
+    # 1. 检查是否有未推送的提交，或创建触发提交
+    CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+    if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
+        echo "⚠️ 当前分支为 $CURRENT_BRANCH，建议切换到 $BRANCH 分支运行。"
+    fi
+
+    # 检查远程是否有更新
+    git fetch origin "$BRANCH" 2>/dev/null || true
+    LOCAL_SHA="$(git rev-parse HEAD)"
+    REMOTE_SHA="$(git rev-parse "origin/$BRANCH")"
+
+    if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
+        echo "ℹ️ 本地代码与远程一致，正在创建空提交触发云端 CI 构建..."
+        git commit --allow-empty -m "ci: trigger arm64 release build with R8 [$(date -u +'%Y-%m-%d %H:%M:%S UTC')]"
+        git push origin "$BRANCH"
+        TARGET_SHA="$(git rev-parse HEAD)"
+    else
+        echo "ℹ️ 检测到未推送的提交，正在推送到远程 origin/$BRANCH..."
+        git push origin "$BRANCH"
+        TARGET_SHA="$(git rev-parse HEAD)"
+    fi
+
+    echo "✓ 提交已推送到 GitHub, 目标 commit SHA: $TARGET_SHA"
+    echo ""
+
+    # 2. 定时轮询等待 GitHub Actions 创建 Workflow Run
+    echo "⏳ 正在等待 GitHub Actions 注册并启动工作流..."
+    for i in {1..20}; do
+        RUNS_JSON=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs?head_sha=$TARGET_SHA")
+        RUN_ID=$(echo "$RUNS_JSON" | jq -r '.workflow_runs[]? | select(.name=="'"$WORKFLOW_NAME"'") | .id' | head -n 1)
+        if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+            RUN_URL=$(echo "$RUNS_JSON" | jq -r '.workflow_runs[]? | select(.id=='"$RUN_ID"') | .html_url')
+            echo "✓ 成功检测到工作流 Run ID: $RUN_ID"
+            echo "  网页监控地址: $RUN_URL"
+            break
+        fi
+        sleep 3
+    done
+
+    if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+        echo "❌ 超时：未在 GitHub Actions 中检测到对应 commit 的构建任务，请检查 GitHub 仓库设置。" >&2
+        exit 1
+    fi
 fi
 
 echo ""
