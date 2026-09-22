@@ -36,7 +36,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -1223,63 +1222,29 @@ private fun VncViewer(
         BasicTextField(
             value = textFieldValue,
             onValueChange = { newValue ->
-                val wasComposing = textFieldValue.composition != null
-                val isComposing = newValue.composition != null
-
-                if (isComposing) {
-                    textFieldValue = newValue
-                    return@BasicTextField
-                }
-
-                if (wasComposing) {
-                    val newText = newValue.text
-                    val committed = if (newText.startsWith(sentinel)) {
-                        newText.removePrefix(sentinel)
-                    } else {
-                        newText
-                    }
-                    onTypeText(committed)
-                    textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-                    return@BasicTextField
-                }
-
                 val oldText = textFieldValue.text
                 val newText = newValue.text
 
                 if (newText.length > oldText.length) {
-                    val added = if (newText.startsWith(oldText)) {
-                        newText.substring(oldText.length)
-                    } else if (newText.startsWith(sentinel)) {
-                        newText.removePrefix(sentinel)
-                    } else {
-                        newText
-                    }
+                    // Characters were typed (or pasted). Route through
+                    // onTypeText so multi-char input goes via the
+                    // serialized typeText path — the previous one-
+                    // launch-per-char model interleaved key events on
+                    // the wire and Windows VNC produced "half-capitals".
+                    val added = newText.substring(oldText.length)
                     onTypeText(added)
-                    textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
                 } else if (newText.length < oldText.length) {
+                    // Backspace
                     val deleted = oldText.length - newText.length
                     repeat(deleted) {
                         onKeyDown(XK_BACKSPACE)
                         onKeyUp(XK_BACKSPACE)
                     }
-                    textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-                } else if (newText != oldText) {
-                    val diffStart = oldText.commonPrefixWith(newText).length
-                    val toDelete = oldText.length - diffStart
-                    repeat(toDelete) {
-                        onKeyDown(XK_BACKSPACE)
-                        onKeyUp(XK_BACKSPACE)
-                    }
-                    val added = newText.substring(diffStart)
-                    onTypeText(added)
-                    textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-                } else {
-                    textFieldValue = newValue
                 }
+
+                // Reset to sentinel
+                textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
             },
-            keyboardOptions = KeyboardOptions(
-                autoCorrect = false,
-            ),
             modifier = Modifier
                 .size(1.dp)
                 .focusRequester(focusRequester)

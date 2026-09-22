@@ -34,7 +34,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -674,34 +673,26 @@ private fun RdpViewer(
     var canvasFocused by remember { mutableStateOf(false) }
     var fieldFocused by remember { mutableStateOf(false) }
     val handleHardwareKey: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { event ->
+        // #606: while the soft keyboard is attached to the hidden text field,
+        // the commit path (onValueChange → onTypeChar) is the single sender for
+        // printable characters. Some IMEs (AOSP's Spanish layout among them)
+        // ALSO fire a synthetic hardware key event for the same press, which
+        // this preview handler sees — the guest gets the character twice (the
+        // `!!@@` flip), and when the IME repeats the event on its flush
+        // cadence, a stream of keystrokes. Drop printable events while the
+        // field holds focus; non-printable keys (arrows, F-keys, Enter, Tab,
+        // modifiers) have no commit-path equivalent and still pass through.
+        // termlib's terminal input path guards the same race with a
+        // commit-then-suppress queue (ImeInputView.dispatchKeyEvent).
         val native = event.nativeKeyEvent
-        val isSoftKeyboard = (native.flags and android.view.KeyEvent.FLAG_SOFT_KEYBOARD) != 0
-
-        // #606 & soft-keyboard de-duplication:
-        // When the soft keyboard is active (or the hidden text field holds focus),
-        // printable characters must be handled solely by the text field's onValueChange
-        // to prevent duplicate keystrokes ("连打").
-        // Non-printable keys (arrows, F-keys, Enter, Tab, modifiers) have no text-commit
-        // equivalent and are forwarded directly via scancodes.
         val committed = native.getUnicodeChar(native.metaState)
-        val isPrintable = committed > 0 &&
+        // Enter and Tab are excluded: the soft keyboard delivers them as
+        // editor actions, not text commits, so onValueChange never sees them
+        // and the scancode path below is their only sender.
+        if (fieldFocused && committed > 0 &&
             committed != '\r'.code && committed != '\n'.code && committed != '\t'.code
-
-        if (isSoftKeyboard || (fieldFocused && isPrintable)) {
-            if (isPrintable) {
-                true
-            } else {
-                val scancode = androidKeyToScancode(event.key)
-                if (scancode != null) {
-                    when (event.type) {
-                        KeyEventType.KeyDown -> onKeyDown(scancode)
-                        KeyEventType.KeyUp -> onKeyUp(scancode)
-                    }
-                    true
-                } else {
-                    false
-                }
-            }
+        ) {
+            true
         } else {
             val scancode = androidKeyToScancode(event.key)
             if (scancode != null) {
@@ -1054,75 +1045,24 @@ private fun RdpViewer(
         BasicTextField(
             value = textFieldValue,
             onValueChange = { newValue ->
-                val wasComposing = textFieldValue.composition != null
-                val isComposing = newValue.composition != null
-
-                if (isComposing) {
-                    // IME is actively composing (e.g. typing pinyin or predictive text).
-                    // Keep the local composition state intact and do NOT forward partial
-                    // characters or reset the text field, allowing the IME candidate window
-                    // to function properly without leaking raw pinyin or trashing state.
-                    textFieldValue = newValue
-                    return@BasicTextField
-                }
-
-                if (wasComposing) {
-                    // Composition was committed (e.g. candidate selected or text confirmed).
-                    val newText = newValue.text
-                    val committed = if (newText.startsWith(sentinel)) {
-                        newText.removePrefix(sentinel)
-                    } else {
-                        newText
-                    }
-                    for (ch in committed) {
-                        onTypeChar(ch)
-                    }
-                    textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-                    return@BasicTextField
-                }
-
-                // Direct typing (no composition in either old or new state).
                 val oldText = textFieldValue.text
                 val newText = newValue.text
 
                 if (newText.length > oldText.length) {
-                    val added = if (newText.startsWith(oldText)) {
-                        newText.substring(oldText.length)
-                    } else if (newText.startsWith(sentinel)) {
-                        newText.removePrefix(sentinel)
-                    } else {
-                        newText
-                    }
+                    val added = newText.substring(oldText.length)
                     for (ch in added) {
                         onTypeChar(ch)
                     }
-                    textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
                 } else if (newText.length < oldText.length) {
                     val deleted = oldText.length - newText.length
                     repeat(deleted) {
                         onKeyDown(SC_BACKSPACE)
                         onKeyUp(SC_BACKSPACE)
                     }
-                    textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-                } else if (newText != oldText) {
-                    val diffStart = oldText.commonPrefixWith(newText).length
-                    val toDelete = oldText.length - diffStart
-                    repeat(toDelete) {
-                        onKeyDown(SC_BACKSPACE)
-                        onKeyUp(SC_BACKSPACE)
-                    }
-                    val added = newText.substring(diffStart)
-                    for (ch in added) {
-                        onTypeChar(ch)
-                    }
-                    textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-                } else {
-                    textFieldValue = newValue
                 }
+
+                textFieldValue = TextFieldValue(sentinel, TextRange(sentinel.length))
             },
-            keyboardOptions = KeyboardOptions(
-                autoCorrect = false,
-            ),
             // Hardware keys are handled by the root Box's onPreviewKeyEvent
             // (#507) — an ancestor of this field, so its preview pass fires
             // whether focus sits here (soft keyboard) or on the canvas.
