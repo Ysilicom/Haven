@@ -689,18 +689,18 @@ private fun RdpViewer(
         // value, and forwarding that scancode typed the pinyin on the remote
         // and sent backspace a second time.
         if ((isSoftKeyboard || fieldFocused) && (isPrintable || imeOwnsRdpKey(event.key))) {
-            return@handleHardwareKey true
-        }
-
-        val scancode = androidKeyToScancode(event.key)
-        if (scancode != null) {
-            when (event.type) {
-                KeyEventType.KeyDown -> onKeyDown(scancode)
-                KeyEventType.KeyUp -> onKeyUp(scancode)
-            }
             true
         } else {
-            false
+            val scancode = androidKeyToScancode(event.key)
+            if (scancode != null) {
+                when (event.type) {
+                    KeyEventType.KeyDown -> onKeyDown(scancode)
+                    KeyEventType.KeyUp -> onKeyUp(scancode)
+                }
+                true
+            } else {
+                false
+            }
         }
     }
     LaunchedEffect(Unit) { hardwareKeyFocus.requestFocus() }
