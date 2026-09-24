@@ -110,7 +110,9 @@ class SshTerminalEmulatorOwner @Inject constructor(
             onKeyboardInput = oki,
             onResize = ors,
             maxScrollbackLines = scrollback,
-        )
+        ).apply {
+            backfillScrollbackOnGrow = false
+        }
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -196,7 +198,9 @@ class SshTerminalEmulatorOwner @Inject constructor(
             maxScrollbackLines = scrollbackRows,
             onKeyboardInput = { data -> bundle.inputSink(data) },
             onResize = { dims -> bundle.resizeSink(dims) },
-        )
+        ).apply {
+            backfillScrollbackOnGrow = false
+        }
         bundle.emulator = emulator
         bundles[sessionId] = bundle
 
