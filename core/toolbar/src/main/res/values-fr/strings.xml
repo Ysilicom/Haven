@@ -33,27 +33,4 @@
     <string name="toolbar_custom_key_label_placeholder">ex. ^C, Coller</string>
     <string name="toolbar_text_input_desc">Ouvrir la saisie de texte flottante</string>
     <string name="toolbar_dictate_desc">Dictée : lancer la saisie vocale</string>
-    <string name="toolbar_tmux_title">Raccourcis TMUX</string>
-    <string name="toolbar_tmux_cancel">Annuler</string>
-    <string name="toolbar_tmux_kill_confirm_title">Terminer la session TMUX ?</string>
-    <string name="toolbar_tmux_kill_confirm_message">Cela mettra fin à toute la session TMUX et à ses processus. Confirmer ?</string>
-    <string name="toolbar_tmux_kill_confirm_button">Terminer la session</string>
-
-    <string name="toolbar_tmux_state_outside">Hors de la session</string>
-    <string name="toolbar_tmux_state_inside">Dans la session</string>
-    <string name="toolbar_tmux_new_session">Nouvelle session</string>
-    <string name="toolbar_tmux_new_session_sub">Créer une session nommée</string>
-    <string name="toolbar_tmux_attach_session_named">Rejoindre la session</string>
-    <string name="toolbar_tmux_attach_session_named_sub">Se connecter à une session existante</string>
-    <string name="toolbar_tmux_detach_named">Arrière-plan (Detach)</string>
-    <string name="toolbar_tmux_detach_named_sub">Garder en arrière-plan et revenir au shell</string>
-    <string name="toolbar_tmux_kill_session_named">Fermer la session</string>
-    <string name="toolbar_tmux_kill_session_named_sub">Mettre fin à la session et aux processus</string>
-    <string name="toolbar_tmux_disabled_in_session">Déjà dans une session</string>
-    <string name="toolbar_tmux_disabled_outside">Pas dans une session</string>
-    <string name="toolbar_tmux_dialog_new_title">Nouvelle session TMUX</string>
-    <string name="toolbar_tmux_dialog_attach_title">Rejoindre la session TMUX</string>
-    <string name="toolbar_tmux_dialog_name_label">Nom de session</string>
-    <string name="toolbar_tmux_dialog_confirm">Confirmer</string>
-    <string name="toolbar_tmux_dialog_list_sessions">Lister les sessions (tmux ls)</string>
 </resources>

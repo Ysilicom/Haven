@@ -28,9 +28,4 @@
   <string name="toolbar_text_input_desc">Отвара плутајући унос текста</string>
   <string name="toolbar_presets_label">Сачувана подешавања</string>
   <string name="toolbar_custom_key_label_placeholder">нпр. ^C, Налепи</string>
-    <string name="toolbar_tmux_title">TMUX пречице</string>
-    <string name="toolbar_tmux_cancel">Откажи</string>
-    <string name="toolbar_tmux_kill_confirm_title">Прекинути TMUX сесију?</string>
-    <string name="toolbar_tmux_kill_confirm_message">Ово ће прекинути целу TMUX сесију и све процесе у њој. Да ли сте сигурни?</string>
-    <string name="toolbar_tmux_kill_confirm_button">Прекини сесију</string>
 </resources>

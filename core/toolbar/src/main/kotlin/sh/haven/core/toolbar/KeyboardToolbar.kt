@@ -1081,19 +1081,6 @@ private fun BuiltInKey(
             active = cb.composeModeActive,
             onClick = cb.onToggleComposeMode,
         )
-        ToolbarKey.TMUX -> {
-            var showTmuxSheet by remember { mutableStateOf(false) }
-            ToolbarTextButton("TMUX") { showTmuxSheet = true }
-            if (showTmuxSheet) {
-                TmuxQuickBottomSheet(
-                    onDismiss = { showTmuxSheet = false },
-                    onSendBytes = { bytes ->
-                        cb.onSendBytes(bytes)
-                        showTmuxSheet = false
-                    },
-                )
-            }
-        }
         ToolbarKey.PASTE -> ToolbarTextButton("Paste") {
             val text = cb.clipboardManager?.primaryClip
                 ?.getItemAt(0)?.text?.toString()

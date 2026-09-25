@@ -30,26 +30,4 @@
     <string name="toolbar_custom_key_label_placeholder">例如 ^C、Paste</string>
     <string name="toolbar_text_input_desc">打开悬浮文本输入</string>
     <string name="toolbar_dictate_desc">听写：开始语音输入</string>
-    <string name="toolbar_tmux_title">TMUX 会话管理</string>
-    <string name="toolbar_tmux_cancel">取消</string>
-    <string name="toolbar_tmux_kill_confirm_title">关闭 TMUX 会话？</string>
-    <string name="toolbar_tmux_kill_confirm_message">这将终止当前 TMUX 会话及其内部所有正在运行的进程，确定要销毁吗？</string>
-    <string name="toolbar_tmux_kill_confirm_button">销毁会话</string>
-    <string name="toolbar_tmux_state_outside">未进入会话</string>
-    <string name="toolbar_tmux_state_inside">已在会话中</string>
-    <string name="toolbar_tmux_new_session">新建会话</string>
-    <string name="toolbar_tmux_new_session_sub">输入名称创建独立会话</string>
-    <string name="toolbar_tmux_attach_session_named">进入指定会话</string>
-    <string name="toolbar_tmux_attach_session_named_sub">连接或恢复已有后台会话</string>
-    <string name="toolbar_tmux_detach_named">后台挂起 (Detach)</string>
-    <string name="toolbar_tmux_detach_named_sub">保持程序后台运行并退回终端</string>
-    <string name="toolbar_tmux_kill_session_named">彻底退出会话</string>
-    <string name="toolbar_tmux_kill_session_named_sub">结束当前会话并终止内部进程</string>
-    <string name="toolbar_tmux_disabled_in_session">已在会话中，请先挂起或退出</string>
-    <string name="toolbar_tmux_disabled_outside">未进入会话，不可用</string>
-    <string name="toolbar_tmux_dialog_new_title">新建 TMUX 会话</string>
-    <string name="toolbar_tmux_dialog_attach_title">进入指定 TMUX 会话</string>
-    <string name="toolbar_tmux_dialog_name_label">会话名称</string>
-    <string name="toolbar_tmux_dialog_confirm">确定</string>
-    <string name="toolbar_tmux_dialog_list_sessions">查看会话列表 (tmux ls)</string>
 </resources>

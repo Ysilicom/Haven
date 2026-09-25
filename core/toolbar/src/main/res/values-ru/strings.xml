@@ -33,27 +33,4 @@
     <string name="toolbar_custom_key_label_placeholder">напр. ^C, Paste</string>
     <string name="toolbar_text_input_desc">Открыть плавающее поле ввода</string>
     <string name="toolbar_dictate_desc">Диктовка: начать голосовой ввод</string>
-    <string name="toolbar_tmux_title">Действия TMUX</string>
-    <string name="toolbar_tmux_cancel">Отмена</string>
-    <string name="toolbar_tmux_kill_confirm_title">Завершить сессию TMUX?</string>
-    <string name="toolbar_tmux_kill_confirm_message">Это завершит всю сессию TMUX и все запущенные в ней процессы. Вы уверены?</string>
-    <string name="toolbar_tmux_kill_confirm_button">Завершить</string>
-
-    <string name="toolbar_tmux_state_outside">Вне сессии</string>
-    <string name="toolbar_tmux_state_inside">Внутри сессии</string>
-    <string name="toolbar_tmux_new_session">Новая сессия</string>
-    <string name="toolbar_tmux_new_session_sub">Создать сессию с именем</string>
-    <string name="toolbar_tmux_attach_session_named">Подключить сессию</string>
-    <string name="toolbar_tmux_attach_session_named_sub">Подключиться к существующей сессии</string>
-    <string name="toolbar_tmux_detach_named">В фон (Detach)</string>
-    <string name="toolbar_tmux_detach_named_sub">Оставить в фоне и вернуться в оболочку</string>
-    <string name="toolbar_tmux_kill_session_named">Завершить сессию</string>
-    <string name="toolbar_tmux_kill_session_named_sub">Завершить сессию и все процессы</string>
-    <string name="toolbar_tmux_disabled_in_session">Уже внутри сессии</string>
-    <string name="toolbar_tmux_disabled_outside">Не в сессии</string>
-    <string name="toolbar_tmux_dialog_new_title">Новая сессия TMUX</string>
-    <string name="toolbar_tmux_dialog_attach_title">Подключение к TMUX</string>
-    <string name="toolbar_tmux_dialog_name_label">Имя сессии</string>
-    <string name="toolbar_tmux_dialog_confirm">Подтвердить</string>
-    <string name="toolbar_tmux_dialog_list_sessions">Список сессий (tmux ls)</string>
 </resources>

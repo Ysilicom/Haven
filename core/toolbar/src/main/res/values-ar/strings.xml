@@ -33,27 +33,4 @@
     <string name="toolbar_custom_key_label_placeholder">مثال: ^C, Paste</string>
     <string name="toolbar_text_input_desc">فتح إدخال النص العائم</string>
     <string name="toolbar_dictate_desc">إملاء: بدء الإدخال الصوتي</string>
-    <string name="toolbar_tmux_title">اختصارات TMUX</string>
-    <string name="toolbar_tmux_cancel">إلغاء</string>
-    <string name="toolbar_tmux_kill_confirm_title">إنهاء جلسة TMUX؟</string>
-    <string name="toolbar_tmux_kill_confirm_message">سيؤدي هذا إلى إنهاء جلسة TMUX بالكامل وجميع العمليات بداخلها. هل أنت متأكد؟</string>
-    <string name="toolbar_tmux_kill_confirm_button">إنهاء الجلسة</string>
-
-    <string name="toolbar_tmux_state_outside">خارج الجلسة</string>
-    <string name="toolbar_tmux_state_inside">داخل الجلسة</string>
-    <string name="toolbar_tmux_new_session">جلسة جديدة</string>
-    <string name="toolbar_tmux_new_session_sub">إنشاء جلسة مسماة</string>
-    <string name="toolbar_tmux_attach_session_named">الاتصال بجلسة</string>
-    <string name="toolbar_tmux_attach_session_named_sub">الاتصال بجلسة حالية</string>
-    <string name="toolbar_tmux_detach_named">في الخلفية (Detach)</string>
-    <string name="toolbar_tmux_detach_named_sub">إبقاء العمليات قيد التشغيل والعودة</string>
-    <string name="toolbar_tmux_kill_session_named">إنهاء الجلسة</string>
-    <string name="toolbar_tmux_kill_session_named_sub">إنهاء الجلسة وكافة العمليات</string>
-    <string name="toolbar_tmux_disabled_in_session">أنت بالفعل داخل جلسة</string>
-    <string name="toolbar_tmux_disabled_outside">لست في جلسة</string>
-    <string name="toolbar_tmux_dialog_new_title">جلسة TMUX جديدة</string>
-    <string name="toolbar_tmux_dialog_attach_title">الاتصال بجلسة TMUX</string>
-    <string name="toolbar_tmux_dialog_name_label">اسم الجلسة</string>
-    <string name="toolbar_tmux_dialog_confirm">تأكيد</string>
-    <string name="toolbar_tmux_dialog_list_sessions">عرض كل الجلسات (tmux ls)</string>
 </resources>

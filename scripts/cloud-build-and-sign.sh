@@ -111,6 +111,22 @@ while true; do
     # 提取并打印各 job 状态
     echo "$JOBS_DATA" | jq -r '.jobs[]? | "  - \(.name): \(.status) (\(.conclusion // "running"))"'
     
+    if [ "$STATUS" = "null" ] || [ -z "$STATUS" ]; then
+        # API 达到匿名限流，改从公开网页直接读取状态
+        PAGE_HTML=$(curl -sL "https://github.com/$REPO/actions/runs/$RUN_ID")
+        if echo "$PAGE_HTML" | grep -q 'data-concluded="false"'; then
+            STATUS="in_progress"
+            echo "  (GitHub API 触发匿名限流，从网页检测到构建仍在进行中...)"
+        else
+            STATUS="completed"
+            if echo "$PAGE_HTML" | grep -q 'aria-label="completed successfully: "'; then
+                CONCLUSION="success"
+            else
+                CONCLUSION="failure"
+            fi
+        fi
+    fi
+
     if [ "$STATUS" = "completed" ]; then
         break
     fi
@@ -130,14 +146,6 @@ echo "🎉 云端编译成功完成！"
 echo "================================================================="
 
 # 3. 获取产物并自动下载重签名
-ARTIFACTS_DATA=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts")
-ARTIFACT_COUNT=$(echo "$ARTIFACTS_DATA" | jq -r '.total_count')
-
-if [ "$ARTIFACT_COUNT" -eq 0 ]; then
-    echo "⚠️ 未发现上传的构建产物 (Artifacts)。"
-    exit 1
-fi
-
 DOWNLOADED_APK=""
 # 尝试使用 Token 下载 Artifact（如果已配置 Token 或 gh CLI 已认证）
 

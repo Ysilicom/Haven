@@ -32,26 +32,4 @@
     <string name="toolbar_text_input_desc">Open floating text input</string>
     <string name="toolbar_presets_label">Presets</string>
     <string name="toolbar_custom_key_label_placeholder">e.g. ^C, Paste</string>
-    <string name="toolbar_tmux_title">TMUX Session Manager</string>
-    <string name="toolbar_tmux_cancel">Cancel</string>
-    <string name="toolbar_tmux_kill_confirm_title">Kill TMUX session?</string>
-    <string name="toolbar_tmux_kill_confirm_message">This will terminate the entire TMUX session and all running processes inside it. Are you sure?</string>
-    <string name="toolbar_tmux_kill_confirm_button">Kill session</string>
-    <string name="toolbar_tmux_state_outside">Outside TMUX</string>
-    <string name="toolbar_tmux_state_inside">Inside TMUX</string>
-    <string name="toolbar_tmux_new_session">New session</string>
-    <string name="toolbar_tmux_new_session_sub">Create a named session</string>
-    <string name="toolbar_tmux_attach_session_named">Attach session</string>
-    <string name="toolbar_tmux_attach_session_named_sub">Connect to an existing session</string>
-    <string name="toolbar_tmux_detach_named">Detach (Background)</string>
-    <string name="toolbar_tmux_detach_named_sub">Keep running in background and return to shell</string>
-    <string name="toolbar_tmux_kill_session_named">Kill session</string>
-    <string name="toolbar_tmux_kill_session_named_sub">Terminate session and all running processes</string>
-    <string name="toolbar_tmux_disabled_in_session">Already in session (detach or exit first)</string>
-    <string name="toolbar_tmux_disabled_outside">Not in session (unavailable)</string>
-    <string name="toolbar_tmux_dialog_new_title">New TMUX Session</string>
-    <string name="toolbar_tmux_dialog_attach_title">Attach TMUX Session</string>
-    <string name="toolbar_tmux_dialog_name_label">Session name</string>
-    <string name="toolbar_tmux_dialog_confirm">Confirm</string>
-    <string name="toolbar_tmux_dialog_list_sessions">List all sessions (tmux ls)</string>
 </resources>
