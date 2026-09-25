@@ -93,30 +93,24 @@ echo "================================================================="
 echo "  开始定时监控云端编译进度..."
 echo "================================================================="
 
-POLL_INTERVAL=20
+POLL_INTERVAL=180
 STATUS="in_progress"
 CONCLUSION=""
 
 while true; do
-    RUN_DATA=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID")
-    STATUS=$(echo "$RUN_DATA" | jq -r '.status')
-    CONCLUSION=$(echo "$RUN_DATA" | jq -r '.conclusion')
-    
-    # 获取各个关键 Job 的最新状态
-    JOBS_DATA=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/jobs")
     TIME_STR=$(date +'%H:%M:%S')
     
-    echo "[$TIME_STR] 总体状态: $STATUS | 结果: $CONCLUSION"
-    
-    # 提取并打印各 job 状态
-    echo "$JOBS_DATA" | jq -r '.jobs[]? | "  - \(.name): \(.status) (\(.conclusion // "running"))"'
+    # 优先检查网页或仅单次 API 请求，节约匿名 60次/小时 额度
+    RUN_DATA=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID")
+    STATUS=$(echo "$RUN_DATA" | jq -r '.status // empty')
+    CONCLUSION=$(echo "$RUN_DATA" | jq -r '.conclusion // empty')
     
     if [ "$STATUS" = "null" ] || [ -z "$STATUS" ]; then
         # API 达到匿名限流，改从公开网页直接读取状态
         PAGE_HTML=$(curl -sL "https://github.com/$REPO/actions/runs/$RUN_ID")
         if echo "$PAGE_HTML" | grep -q 'data-concluded="false"'; then
             STATUS="in_progress"
-            echo "  (GitHub API 触发匿名限流，从网页检测到构建仍在进行中...)"
+            echo "[$TIME_STR] 构建进行中... (网页端检测，未消耗 API 额度)"
         else
             STATUS="completed"
             if echo "$PAGE_HTML" | grep -q 'aria-label="completed successfully: "'; then
@@ -124,6 +118,14 @@ while true; do
             else
                 CONCLUSION="failure"
             fi
+            echo "[$TIME_STR] 构建已结束 (网页端检测: $CONCLUSION)"
+        fi
+    else
+        echo "[$TIME_STR] 总体状态: $STATUS | 结果: ${CONCLUSION:-进行中}"
+        # 仅在有 Token 情况下才额外拉取 jobs 列表，避免双倍消耗匿名额度
+        if [ -n "$AUTH_TOKEN" ]; then
+            JOBS_DATA=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/jobs")
+            echo "$JOBS_DATA" | jq -r '.jobs[]? | "  - \(.name): \(.status) (\(.conclusion // "running"))"'
         fi
     fi
 
@@ -131,6 +133,7 @@ while true; do
         break
     fi
     
+    echo "  (低频防限流轮询：等待 3 分钟后再次检查...)"
     sleep "$POLL_INTERVAL"
 done
 
