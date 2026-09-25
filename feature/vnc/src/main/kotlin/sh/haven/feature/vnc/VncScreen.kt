@@ -230,8 +230,8 @@ fun VncSessionContent(
         }
     }
 
-    val imeVisible = WindowInsets.isImeVisible
-    LaunchedEffect(fullscreen, imeVisible, window) {
+    LaunchedEffect(fullscreen, window) {
+        onFullscreenChanged(fullscreen)
         if (window != null) {
             val controller = WindowCompat.getInsetsController(window, view)
             if (fullscreen) {
@@ -242,19 +242,13 @@ fun VncSessionContent(
                 window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                controller.hide(WindowInsetsCompat.Type.statusBars())
-                if (!imeVisible) {
-                    controller.hide(WindowInsetsCompat.Type.navigationBars())
-                }
                 controller.hide(WindowInsetsCompat.Type.systemBars())
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     window.insetsController?.let { nativeCtrl ->
                         nativeCtrl.systemBarsBehavior =
                             android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                         nativeCtrl.hide(android.view.WindowInsets.Type.statusBars())
-                        if (!imeVisible) {
-                            nativeCtrl.hide(android.view.WindowInsets.Type.navigationBars())
-                        }
+                        nativeCtrl.hide(android.view.WindowInsets.Type.navigationBars())
                     }
                 }
             } else {

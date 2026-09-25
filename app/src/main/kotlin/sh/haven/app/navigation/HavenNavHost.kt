@@ -86,7 +86,6 @@ import sh.haven.core.data.repository.ConnectionRepository
 import androidx.activity.compose.LocalActivity
 import android.os.Build
 import android.view.WindowManager
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.ui.platform.LocalView
 import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.app.desktop.DesktopViewModel
@@ -562,8 +561,7 @@ fun HavenNavHost(
         Screen.Desktop -> desktopFullscreen
         else -> false
     }
-    val imeVisible = WindowInsets.isImeVisible
-    LaunchedEffect(currentScreenFullscreen, imeVisible, navHostWindow) {
+    LaunchedEffect(currentScreenFullscreen, navHostWindow) {
         if (navHostWindow != null) {
             val controller = WindowCompat.getInsetsController(navHostWindow, hostView)
             if (currentScreenFullscreen) {
@@ -575,10 +573,6 @@ fun HavenNavHost(
 
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                controller.hide(WindowInsetsCompat.Type.statusBars())
-                if (!imeVisible) {
-                    controller.hide(WindowInsetsCompat.Type.navigationBars())
-                }
                 controller.hide(WindowInsetsCompat.Type.systemBars())
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -586,9 +580,7 @@ fun HavenNavHost(
                         nativeCtrl.systemBarsBehavior =
                             android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                         nativeCtrl.hide(android.view.WindowInsets.Type.statusBars())
-                        if (!imeVisible) {
-                            nativeCtrl.hide(android.view.WindowInsets.Type.navigationBars())
-                        }
+                        nativeCtrl.hide(android.view.WindowInsets.Type.navigationBars())
                     }
                 }
             } else {
