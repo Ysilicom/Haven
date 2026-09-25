@@ -121,6 +121,8 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.activity.compose.BackHandler
+import android.os.Build
+import android.view.WindowManager
 import sh.haven.core.ui.findActivity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -213,17 +215,42 @@ fun RdpSessionContent(
         }
     }
 
-    LaunchedEffect(fullscreen, window) {
-        if (fullscreenOverride != null) return@LaunchedEffect
-        onFullscreenChanged(fullscreen)
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(fullscreen, imeVisible, window) {
         if (window != null) {
-            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            val controller = WindowCompat.getInsetsController(window, view)
             if (fullscreen) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    window.attributes.layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+                window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.statusBars())
+                if (!imeVisible) {
+                    controller.hide(WindowInsetsCompat.Type.navigationBars())
+                }
                 controller.hide(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.systemBarsBehavior =
+                            android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        nativeCtrl.hide(android.view.WindowInsets.Type.statusBars())
+                        if (!imeVisible) {
+                            nativeCtrl.hide(android.view.WindowInsets.Type.navigationBars())
+                        }
+                    }
+                }
             } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 controller.show(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.show(android.view.WindowInsets.Type.statusBars())
+                        nativeCtrl.show(android.view.WindowInsets.Type.navigationBars())
+                    }
+                }
             }
         }
     }
@@ -235,8 +262,15 @@ fun RdpSessionContent(
     DisposableEffect(Unit) {
         onDispose {
             if (fullscreenOverride == null && localFullscreen && window != null) {
-                val controller = WindowCompat.getInsetsController(window, window.decorView)
+                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                val controller = WindowCompat.getInsetsController(window, view)
                 controller.show(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.show(android.view.WindowInsets.Type.statusBars())
+                        nativeCtrl.show(android.view.WindowInsets.Type.navigationBars())
+                    }
+                }
                 onFullscreenChanged(false)
             }
         }

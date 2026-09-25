@@ -84,6 +84,10 @@ import sh.haven.core.data.preferences.TabVisibility
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
 import androidx.activity.compose.LocalActivity
+import android.os.Build
+import android.view.WindowManager
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.ui.platform.LocalView
 import androidx.hilt.navigation.compose.hiltViewModel
 import sh.haven.app.desktop.DesktopViewModel
 import sh.haven.feature.connections.ConnectionsScreen
@@ -552,28 +556,65 @@ fun HavenNavHost(
     // when the currently active screen requests it.
     val currentActivity = LocalActivity.current ?: LocalContext.current.findActivity()
     val navHostWindow = currentActivity?.window
+    val hostView = LocalView.current
     val currentScreenFullscreen = when (selectedScreen) {
         Screen.Terminal -> terminalFullscreen
         Screen.Desktop -> desktopFullscreen
         else -> false
     }
-    LaunchedEffect(currentScreenFullscreen, navHostWindow) {
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(currentScreenFullscreen, imeVisible, navHostWindow) {
         if (navHostWindow != null) {
-            val controller = WindowCompat.getInsetsController(navHostWindow, navHostWindow.decorView)
+            val controller = WindowCompat.getInsetsController(navHostWindow, hostView)
             if (currentScreenFullscreen) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    navHostWindow.attributes.layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+                navHostWindow.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.statusBars())
+                if (!imeVisible) {
+                    controller.hide(WindowInsetsCompat.Type.navigationBars())
+                }
                 controller.hide(WindowInsetsCompat.Type.systemBars())
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    navHostWindow.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.systemBarsBehavior =
+                            android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        nativeCtrl.hide(android.view.WindowInsets.Type.statusBars())
+                        if (!imeVisible) {
+                            nativeCtrl.hide(android.view.WindowInsets.Type.navigationBars())
+                        }
+                    }
+                }
             } else {
+                navHostWindow.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 controller.show(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    navHostWindow.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.show(android.view.WindowInsets.Type.statusBars())
+                        nativeCtrl.show(android.view.WindowInsets.Type.navigationBars())
+                    }
+                }
             }
         }
     }
     DisposableEffect(navHostWindow) {
         onDispose {
             if (navHostWindow != null) {
-                val controller = WindowCompat.getInsetsController(navHostWindow, navHostWindow.decorView)
+                navHostWindow.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                val controller = WindowCompat.getInsetsController(navHostWindow, hostView)
                 controller.show(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    navHostWindow.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.show(android.view.WindowInsets.Type.statusBars())
+                        nativeCtrl.show(android.view.WindowInsets.Type.navigationBars())
+                    }
+                }
             }
         }
     }

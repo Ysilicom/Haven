@@ -120,6 +120,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.BackHandler
+import android.os.Build
+import android.view.WindowManager
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -228,17 +230,42 @@ fun VncSessionContent(
         }
     }
 
-    LaunchedEffect(fullscreen, window) {
-        if (fullscreenOverride != null) return@LaunchedEffect
-        onFullscreenChanged(fullscreen)
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(fullscreen, imeVisible, window) {
         if (window != null) {
-            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            val controller = WindowCompat.getInsetsController(window, view)
             if (fullscreen) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    window.attributes.layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+                window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.statusBars())
+                if (!imeVisible) {
+                    controller.hide(WindowInsetsCompat.Type.navigationBars())
+                }
                 controller.hide(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.systemBarsBehavior =
+                            android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        nativeCtrl.hide(android.view.WindowInsets.Type.statusBars())
+                        if (!imeVisible) {
+                            nativeCtrl.hide(android.view.WindowInsets.Type.navigationBars())
+                        }
+                    }
+                }
             } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 controller.show(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.show(android.view.WindowInsets.Type.statusBars())
+                        nativeCtrl.show(android.view.WindowInsets.Type.navigationBars())
+                    }
+                }
             }
         }
     }
@@ -249,16 +276,16 @@ fun VncSessionContent(
 
     DisposableEffect(Unit) {
         onDispose {
-            // Reads `localFullscreen`, NOT `fullscreen`. DisposableEffect(Unit) keeps the
-            // effect lambda from the first composition, so a plain val like `fullscreen`
-            // is frozen at its first-composition value (false) and this would never fire.
-            // `localFullscreen` is a state delegate, so its getter yields the live value.
-            // Without this, closing a fullscreen tab left onFullscreenChanged(false)
-            // uncalled: the host kept hiding the app bar and bottom nav, and pager swipe
-            // stays disabled while it thinks we're fullscreen — no way out. (#386)
             if (fullscreenOverride == null && localFullscreen && window != null) {
-                val controller = WindowCompat.getInsetsController(window, window.decorView)
+                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                val controller = WindowCompat.getInsetsController(window, view)
                 controller.show(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.show(android.view.WindowInsets.Type.statusBars())
+                        nativeCtrl.show(android.view.WindowInsets.Type.navigationBars())
+                    }
+                }
                 onFullscreenChanged(false)
             }
         }

@@ -5,6 +5,8 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Build
+import android.view.WindowManager
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -512,29 +514,57 @@ fun TerminalScreen(
     }
     val view = LocalView.current
     val window = remember(view) { view.context.findActivity()?.window }
-    LaunchedEffect(fullscreen, window) {
-        if (fullscreenOverride != null) return@LaunchedEffect
-        onFullscreenChanged(fullscreen)
+    val imeVisible = WindowInsets.isImeVisible
+    LaunchedEffect(fullscreen, imeVisible, window) {
         if (window != null) {
-            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            val controller = WindowCompat.getInsetsController(window, view)
             if (fullscreen) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    window.attributes.layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
+                window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.statusBars())
+                if (!imeVisible) {
+                    controller.hide(WindowInsetsCompat.Type.navigationBars())
+                }
                 controller.hide(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.systemBarsBehavior =
+                            android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        nativeCtrl.hide(android.view.WindowInsets.Type.statusBars())
+                        if (!imeVisible) {
+                            nativeCtrl.hide(android.view.WindowInsets.Type.navigationBars())
+                        }
+                    }
+                }
             } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 controller.show(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.show(android.view.WindowInsets.Type.statusBars())
+                        nativeCtrl.show(android.view.WindowInsets.Type.navigationBars())
+                    }
+                }
             }
         }
     }
     DisposableEffect(Unit) {
         onDispose {
-            // Belt-and-braces: if the screen is torn down while still
-            // in fullscreen (e.g. user backgrounds the app), make sure
-            // the system bars come back so the next surface isn't stuck
-            // edge-to-edge.
             if (fullscreenOverride == null && fullscreen && window != null) {
-                WindowCompat.getInsetsController(window, window.decorView)
-                    .show(WindowInsetsCompat.Type.systemBars())
+                window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                val controller = WindowCompat.getInsetsController(window, view)
+                controller.show(WindowInsetsCompat.Type.systemBars())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    window.insetsController?.let { nativeCtrl ->
+                        nativeCtrl.show(android.view.WindowInsets.Type.statusBars())
+                        nativeCtrl.show(android.view.WindowInsets.Type.navigationBars())
+                    }
+                }
                 onFullscreenChanged(false)
             }
         }
