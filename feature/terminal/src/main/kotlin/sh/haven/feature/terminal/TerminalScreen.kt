@@ -121,6 +121,7 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.core.view.WindowInsetsCompat
 import sh.haven.core.ui.findActivity
 import androidx.hilt.navigation.compose.hiltViewModel
+import org.connectbot.terminal.InlineImageProtocolType
 import org.connectbot.terminal.ModifierManager
 import org.connectbot.terminal.TerminalEmulator
 import sh.haven.core.terminal.HavenKeyboardMode
@@ -1568,6 +1569,20 @@ fun TerminalScreen(
                         showTerminalNotification(context, title, body, activeTab.label)
                     }
 
+                    // Inline-image consent (#583): the ASK policy parks the
+                    // request on the per-session registry; answer it here.
+                    val inlineImagePrompt by viewModel
+                        .inlineImagePromptFor(activeTab.sessionId)
+                        .collectAsState()
+                    inlineImagePrompt?.let { prompt ->
+                        InlineImageConsentDialog(
+                            prompt = prompt,
+                            onAnswer = { allowed, alwaysInTab ->
+                                viewModel.answerInlineImage(activeTab.sessionId, allowed, alwaysInTab)
+                            },
+                        )
+                    }
+
                     val focusRequester = remember { FocusRequester() }
 
                     // Keyed on isActive, not Unit: the HorizontalPager keeps
@@ -2093,11 +2108,11 @@ fun TerminalScreen(
                     // needed while typing. Fullscreen still hides the system + tab bars.
                     KeyboardToolbar(
                         onSendBytes = { bytes -> activeTab.sendInput(bytes) },
-                        // The toolbar's own keys dispatch with mods = 0, so a tapped
-                        // Ctrl/Alt never reached them — Ctrl+End sent a bare End. Fold
-                        // the active modifiers in here (bit 1 = Alt, bit 2 = Ctrl, per
-                        // Terminal.cpp's dispatchKey) and let libvterm build the
-                        // sequence: Ctrl+End becomes ESC[1;5F.
+                        // The toolbar folds its own sticky Shift into the mods it
+                        // passes (#665); this wrapper folds the tapped Ctrl/Alt the
+                        // toolbar can't see — bits 1 = Alt, 2 = Ctrl, per
+                        // Terminal.cpp's dispatchKey. libvterm builds the sequence:
+                        // Ctrl+End becomes ESC[1;5F, Shift+Left ESC[1;2D.
                         onDispatchKey = { mods, key ->
                             val tapped = viewModel.toolbarModifierMask()
                             activeTab.emulator?.dispatchKey(mods or tapped, key)
@@ -2204,11 +2219,26 @@ fun TerminalScreen(
                             }
                         },
                         selectionContent = selectionController?.let { ctrl -> {
+                            // The long-press menu's macros section lists the
+                            // same set the toolbar's scissors sheet does —
+                            // toolbar-pinned snippets plus the off-toolbar
+                            // library — so the two stay in sync (#661).
+                            val macros = remember(toolbarLayout, snippetLibrary) {
+                                sh.haven.core.data.preferences.SnippetOps.allSnippets(
+                                    toolbarLayout,
+                                    snippetLibrary,
+                                )
+                            }
                             SelectionToolbarContent(
                                 controller = ctrl,
                                 hyperlinkUri = currentHyperlinkUri,
                                 bracketPasteMode = isBracketPaste,
                                 onPaste = { text -> activeTab.sendInput(text.toByteArray()) },
+                                snippets = macros,
+                                onSendSnippet = { snippet ->
+                                    // Same path as a toolbar snippet tap.
+                                    activeTab.sendInput(snippet.send.toByteArray())
+                                },
                             )
                         } },
                         modifier = Modifier.fillMaxWidth(),
@@ -2689,6 +2719,68 @@ private fun StallBanner(
             }
         }
     }
+}
+
+/**
+ * Inline-image consent dialog (#583): what the terminal wants to display,
+ * with Deny / Allow plus "always in this tab". Dismiss denies — nothing
+ * renders without an answer.
+ */
+@Composable
+private fun InlineImageConsentDialog(
+    prompt: InlineImagePrompt,
+    onAnswer: (allowed: Boolean, alwaysInTab: Boolean) -> Unit,
+) {
+    val request = prompt.request
+    AlertDialog(
+        onDismissRequest = { onAnswer(false, false) },
+        title = { Text(stringResource(R.string.terminal_inline_image_title)) },
+        text = {
+            Column {
+                Text(stringResource(R.string.terminal_inline_image_question))
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = when (request.protocol) {
+                        InlineImageProtocolType.KITTY ->
+                            stringResource(R.string.terminal_inline_image_protocol_kitty)
+                        InlineImageProtocolType.ITERM2 ->
+                            stringResource(R.string.terminal_inline_image_protocol_iterm2)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                request.name?.let {
+                    Text(
+                        text = stringResource(R.string.terminal_inline_image_name, it),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                val w = request.pixelWidth
+                val h = request.pixelHeight
+                if (w != null && h != null) {
+                    Text(
+                        text = stringResource(R.string.terminal_inline_image_dimensions, w, h),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Row {
+                TextButton(onClick = { onAnswer(false, false) }) {
+                    Text(stringResource(R.string.terminal_inline_image_deny))
+                }
+                TextButton(onClick = { onAnswer(true, true) }) {
+                    Text(stringResource(R.string.terminal_inline_image_always_tab))
+                }
+                TextButton(onClick = { onAnswer(true, false) }) {
+                    Text(stringResource(R.string.common_allow))
+                }
+            }
+        },
+    )
 }
 
 @Composable

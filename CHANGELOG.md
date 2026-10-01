@@ -5,6 +5,24 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.16
+
+- **Saved tunnel configs are editable.** Until now the Tunnels screen could only add or delete a row (#666). Rows now carry an Edit affordance that reopens the add dialog with the stored fields filled in — the tunnel type is locked once set, and saving overwrites the row in place, keeping its id, type and creation date.
+- **An unanswered consent prompt reports "denied" again.** A race between the consent manager's own timeout and the transport wrapper below it could report the internal "timed out" error (-32012) and skip the DENIED audit row when the system was slow to schedule the manager's timer. The manager now owns the whole wait budget, so an unanswered prompt always returns -32000 with its audit row, and the on-device prompt window is back to the full 55s instead of 49.5s.
+- **Direct SSH connections run on sshd 2.20.0.** Dependency update; the exec, port-forward, shell and SFTP contract suites were re-run against it.
+
+## v5.89.15
+
+- **Shift+arrows and the other shifted toolbar keys work.** The keyboard toolbar's Shift only reached Tab: the arrows, Home/End, PgUp/PgDn and the rest went out with their modifier bits zeroed, so Shift+Left sent a plain left arrow and apps like Codex ran their own shortcut instead (#665). Every key the toolbar dispatches now carries Shift, which stays on until you tap it off again, the way the letter keys behave.
+- **Mosh rebinds no longer throw "recvfrom failed: EBADF"** (#421). The rebind's old socket is retired instead of being closed under an in-flight receive; it closes at the next receive instruction, when the receive side is provably out of it.
+- **Agent terminal shells survive tab teardown** (#555). A teardown that left the process alive now re-adopts the shell cleanly instead of failing with "No registered terminal tab" while the PTY, input path and scrollback were all still there.
+- **Tool schemas are accepted by strict OpenAI-compatible providers** (#664). Three array parameters declared no element type, and providers that reject the whole toolset on that (Groq) made every Haven tool unusable; they now declare their items.
+- **Text selection holds up under finger wobble and stays inside the viewport.** Upstream's wobble and edge-handling selection fixes are in, and the selection pill row clamps by its full width and vertically within the screen (#661).
+
+## v5.89.14
+
+- **Terminal macros in the long-press selection menu.** Selecting text by long-press now shows a Macros button next to Copy, Paste and Open (#661). It opens the snippet library the keyboard toolbar edits and sends the tapped snippet to the session as keystrokes — snippets with a trailing Enter execute, the rest land at the prompt unexecuted.
+
 ## v5.89.13
 
 - **The tab bar works past three tabs.** On a narrow screen, a fourth tab collapsed the strip into a horizontal scroller where one long title could fill the whole bar and nothing scrolled to the selected tab — closing a tab made the others reappear. Past three tabs the strip is now a single chip for the active tab that opens a dropdown listing every tab; the active row is set in bold and carries a close button, and long-pressing the chip still opens the per-tab actions menu.

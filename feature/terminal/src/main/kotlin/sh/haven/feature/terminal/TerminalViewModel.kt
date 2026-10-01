@@ -313,6 +313,7 @@ class TerminalViewModel @Inject constructor(
      */
     private val fidoAuthenticator: sh.haven.core.fido.FidoAuthenticator,
     private val preferencesRepository: UserPreferencesRepository,
+    private val inlineImageConsent: InlineImageConsentRegistry,
     private val connectionRepository: sh.haven.core.data.repository.ConnectionRepository,
     private val tunnelResolver: sh.haven.core.tunnel.TunnelResolver,
     private val agentUiCommandBus: sh.haven.core.data.agent.AgentUiCommandBus,
@@ -543,24 +544,34 @@ class TerminalViewModel @Inject constructor(
                 "USBSERIAL" -> usbSerialSessionManager.detachTerminalSession(tab.sessionId)
                 "LOCAL" -> {
                     localSessionManager.detachTerminalSession(tab.sessionId)
-                    // Drop the now-stale emulator from the singleton registry so a
-                    // recreated ViewModel reattaches (fresh emulator + scrollback
-                    // replay + live rewire) instead of re-adopting this torn-down
-                    // emulator (#272). Because the registry is @Singleton and every
-                    // tab registers into it, the adoption path always found an entry
-                    // and short-circuited the reattach path — leaving the proot
-                    // terminal blank on return-from-background despite the shell
-                    // staying alive. read_terminal_scrollback (the agent ring) is
-                    // unaffected; only the grid snapshot is briefly unavailable
-                    // until the UI rebuilds, which is correct (the old grid is stale).
-                    terminalSessionRegistry.unregister(tab.sessionId)
+                    // Two teardown shapes (#555): a tab the agent opened
+                    // headless hands the registry entry back to its retained
+                    // agent shell — the session stays registered, so the
+                    // structured tools keep working while no UI exists, the
+                    // LOCAL/GUEST counterpart of the SSH resetSinks branch.
+                    // A UI-opened session has no agent shell behind it; drop
+                    // the stale emulator so a recreated ViewModel reattaches
+                    // (fresh emulator + scrollback replay + live rewire)
+                    // instead of re-adopting this torn-down emulator (#272).
+                    // Because the registry is @Singleton and every tab
+                    // registers into it, the adoption path always found an
+                    // entry and short-circuited the reattach path — leaving
+                    // the proot terminal blank on return-from-background
+                    // despite the shell staying alive.
+                    if (!terminalSessionRegistry.restoreAgentHandles(tab.sessionId)) {
+                        terminalSessionRegistry.unregister(tab.sessionId)
+                    }
                 }
                 "GUEST" -> {
                     umlGuestManager.detachTerminalSession(tab.sessionId)
-                    // Same reasoning as LOCAL: drop the stale emulator so the
-                    // recreated ViewModel reattaches with a fresh emulator and a
-                    // scrollback replay instead of adopting the dead grid.
-                    terminalSessionRegistry.unregister(tab.sessionId)
+                    // Same reasoning as LOCAL: restore the agent shell if one
+                    // is behind this tab, otherwise drop the stale emulator
+                    // so the recreated ViewModel reattaches with a fresh
+                    // emulator and a scrollback replay instead of adopting
+                    // the dead grid.
+                    if (!terminalSessionRegistry.restoreAgentHandles(tab.sessionId)) {
+                        terminalSessionRegistry.unregister(tab.sessionId)
+                    }
                 }
             }
         }
@@ -646,6 +657,15 @@ class TerminalViewModel @Inject constructor(
                 viewModelScope,
                 SharingStarted.Eagerly,
                 UserPreferencesRepository.DEFAULT_SCROLLBACK_ROWS,
+            )
+
+    /** Inline-image consent policy (#583). Re-policed on live tabs when it changes. */
+    private val terminalInlineImages: StateFlow<UserPreferencesRepository.TerminalInlineImages> =
+        preferencesRepository.terminalInlineImages
+            .stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                UserPreferencesRepository.TerminalInlineImages.ASK,
             )
 
     /**
@@ -825,8 +845,9 @@ class TerminalViewModel @Inject constructor(
      * The active modifiers as libvterm's dispatchKey mask — bit 0 Shift, bit 1
      * Alt, bit 2 Ctrl (`Terminal.cpp`). The toolbar's own keys dispatch a key
      * code rather than bytes, so this is what carries a tapped Ctrl to them;
-     * without it Ctrl+End left as a bare End. Shift is the toolbar's own state
-     * and is not folded in here.
+     * without it Ctrl+End left as a bare End. Shift never needs folding here —
+     * the toolbar owns that state and adds bit 0 itself when dispatching
+     * (#665), so what arrives at dispatchKey already carries it.
      */
     fun toolbarModifierMask(): Int =
         (if (_altActive.value) 2 else 0) or (if (_ctrlActive.value) 4 else 0)
@@ -1065,6 +1086,15 @@ class TerminalViewModel @Inject constructor(
         viewModelScope.launch {
             usbSerialSessionManager.sessions.collect { syncSessions() }
         }
+        // Inline-image policy (#583): re-police live tabs when the consent
+        // preference changes; new emulators read the current value at create.
+        viewModelScope.launch {
+            terminalInlineImages.collect { mode ->
+                for (tab in _tabs.value) {
+                    tab.emulator.setInlineImages(inlineImagesPolicy(mode, inlineImageConsent.state(tab.sessionId)))
+                }
+            }
+        }
         viewModelScope.launch {
             localSessionManager.sessions.collect { syncSessions() }
         }
@@ -1256,6 +1286,7 @@ class TerminalViewModel @Inject constructor(
                         source.getActive(sessionId)?.resize(dims.columns, dims.rows)
                     },
                     maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 )
                 // Disable grow backfill across all transports: an Ink/TUI line-diff
                 // repaint strands popped scrollback, and standard shells experience cursor
@@ -1350,6 +1381,7 @@ class TerminalViewModel @Inject constructor(
                     localSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
             // Disable grow backfill: prevents scrollback popping and cursor desync on resize.
             emulator.backfillScrollbackOnGrow = false
@@ -1521,6 +1553,9 @@ class TerminalViewModel @Inject constructor(
             }
         }
         if (removed) {
+            for (gone in _tabs.value.map { it.sessionId }.toSet() - currentTabs.map { it.sessionId }.toSet()) {
+                inlineImageConsent.drop(gone)
+            }
             trackedSessionIds.retainAll(currentTabs.map { it.sessionId }.toSet())
         }
 
@@ -1646,6 +1681,7 @@ class TerminalViewModel @Inject constructor(
                     rnsSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
             emulator.backfillScrollbackOnGrow = false
 
@@ -1727,6 +1763,7 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> btCoalescer.send(applyModifiers(data)) },
                 onResize = { /* raw serial: no resize channel */ },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
             emulator.backfillScrollbackOnGrow = false
 
@@ -1805,6 +1842,7 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> bleCoalescer.send(applyModifiers(data)) },
                 onResize = { /* raw serial: no resize channel */ },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
             emulator.backfillScrollbackOnGrow = false
 
@@ -1883,6 +1921,7 @@ class TerminalViewModel @Inject constructor(
                 onKeyboardInput = { data -> usbCoalescer.send(applyModifiers(data)) },
                 onResize = { /* raw serial: no resize channel */ },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
             emulator.backfillScrollbackOnGrow = false
 
@@ -1990,6 +2029,7 @@ class TerminalViewModel @Inject constructor(
                     moshSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
             emulator.backfillScrollbackOnGrow = false
 
@@ -2098,6 +2138,7 @@ class TerminalViewModel @Inject constructor(
                     etSession.resize(dims.columns, dims.rows)
                 },
                 maxScrollbackLines = terminalScrollbackRows.value,
+                inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
             emulator.backfillScrollbackOnGrow = false
 
@@ -2200,9 +2241,12 @@ class TerminalViewModel @Inject constructor(
                     // tab was being built (fresh-app-start race, #378). The tab's
                     // emulator is on screen, resized, and fed by its own pipeline;
                     // repoint the agent handles at it so feed_terminal_output /
-                    // read_terminal_snapshot see what the user sees. Also drop the
-                    // now-orphaned agent tee so PTY output stops double-feeding a
-                    // headless emulator nothing reads.
+                    // read_terminal_snapshot see what the user sees. The agent
+                    // tee deliberately stays armed: the retained agent shell
+                    // keeps consuming PTY output behind the tab, so its
+                    // emulator is current when this tab's ViewModel teardown
+                    // hands the entry back to it (#555). The double-feed it
+                    // costs is one bounded-emulator write per PTY chunk.
                     terminalSessionRegistry.adoptTabHandles(
                         tab.sessionId,
                         tab.emulator,
@@ -2214,11 +2258,6 @@ class TerminalViewModel @Inject constructor(
                         tab.oscHandler,
                         tab.feedOutput,
                     )
-                    if (tab.transportType == "LOCAL") {
-                        localSessionManager.clearAgentTee(tab.sessionId)
-                    } else if (tab.transportType == "GUEST") {
-                        umlGuestManager.clearAgentTee(tab.sessionId)
-                    }
                 }
                 existing.oscHandler == null -> {
                     // Agent-headless entry adopted by a UI tab sharing the SAME
@@ -2282,6 +2321,19 @@ class TerminalViewModel @Inject constructor(
             // a NONE profile and the stale tmux list lingers).
             refreshRemoteSessions()
         }
+    }
+
+    /**
+     * Pending inline-image consent dialog for a tab (#583), or null when none.
+     * Keyed by sessionId so it also reaches sessions whose emulator the SSH
+     * owner created before this ViewModel existed.
+     */
+    fun inlineImagePromptFor(sessionId: String): StateFlow<InlineImagePrompt?> =
+        inlineImageConsent.state(sessionId).prompt
+
+    /** Answer the tab's pending inline-image consent dialog (#583). */
+    fun answerInlineImage(sessionId: String, allowed: Boolean, alwaysInTab: Boolean) {
+        inlineImageConsent.answer(sessionId, allowed, alwaysInTab)
     }
 
     fun moveTab(fromIndex: Int, direction: Int) {

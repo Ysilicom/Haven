@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.4.20"
-agp = "9.2.1"
+agp = "9.4.1"
 compose-bom = "2026.09.00"
 hilt = "2.60.1"
 room = "2.7.1"
@@ -20,7 +20,7 @@ bouncycastle = "1.84"
 jna = "5.19.1"
 coroutines = "1.10.1"
 lifecycle = "2.11.0"
-navigation = "2.10.1"
+navigation = "2.10.2"
 core-ktx = "1.17.0"
 activity-compose = "1.13.0"
 shizuku-api = "13.1.5"
@@ -139,10 +139,10 @@ androidx-test-core = { group = "androidx.test", name = "core-ktx", version = "1.
 compose-ui-test = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 # Embedded SSH server for SshClient unit tests (Apache MINA sshd, host JVM only)
-sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.19.0" }
+sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.20.0" }
 # MINA's SFTP subsystem lives outside sshd-core — test-only, for the
 # SftpSession contract suite that runs against both SSH engines (#58).
-sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.19.0" }
+sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.20.0" }
 sshlib = { group = "org.connectbot.sshlib", name = "sshlib", version.ref = "sshlib" }
 slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version = "2.0.9" }
 
