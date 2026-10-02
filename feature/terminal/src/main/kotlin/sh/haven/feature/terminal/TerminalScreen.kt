@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -40,7 +41,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.ContentCopy
@@ -564,7 +567,12 @@ fun TerminalScreen(
             }
         }
     }
-    BackHandler(enabled = fullscreen) { setFullscreen(false) }
+    var fsMenuOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(fullscreen) {
+        if (!fullscreen) fsMenuOpen = false
+    }
+    BackHandler(enabled = fullscreen && !fsMenuOpen) { setFullscreen(false) }
+    BackHandler(enabled = fullscreen && fsMenuOpen) { fsMenuOpen = false }
     val tabs by viewModel.tabs.collectAsState()
     LaunchedEffect(tabs.isEmpty()) {
         if (tabs.isEmpty() && fullscreen) {
@@ -2050,17 +2058,17 @@ fun TerminalScreen(
                             modifier = Modifier.align(Alignment.TopCenter),
                         )
 
-                        // Fullscreen toggle (#138). Small low-opacity overlay in
+                        // Fullscreen toggle (#138) / session menu. Small low-opacity overlay in
                         // a corner (default top-right; the TopCenter slot is the
-                        // disconnect banner's, so they never collide). Tap toggles
-                        // fullscreen; hold-drag moves it to another corner, snapping
+                        // disconnect banner's, so they never collide). Tap in fullscreen opens
+                        // session switcher menu with exit fullscreen; tap when not fullscreen
+                        // enters fullscreen; hold-drag moves it to another corner, snapping
                         // to whichever it's released nearest and remembering it (#445).
                         var fsDragOffset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
                         var fsButtonCoords by remember {
                             mutableStateOf<androidx.compose.ui.layout.LayoutCoordinates?>(null)
                         }
-                        IconButton(
-                            onClick = { setFullscreen(!fullscreen) },
+                        Box(
                             modifier = Modifier
                                 .align(fullscreenButtonCorner.toComposeAlignment())
                                 .offset { androidx.compose.ui.unit.IntOffset(fsDragOffset.x.toInt(), fsDragOffset.y.toInt()) }
@@ -2087,20 +2095,178 @@ fun TerminalScreen(
                                             fsDragOffset = androidx.compose.ui.geometry.Offset.Zero
                                         },
                                     )
-                                }
-                                .padding(2.dp)
-                                .size(32.dp),
+                                },
                         ) {
-                            Icon(
-                                imageVector = if (fullscreen) Icons.Filled.FullscreenExit
-                                else Icons.Filled.Fullscreen,
-                                contentDescription = stringResource(
-                                    if (fullscreen) R.string.terminal_exit_fullscreen
-                                    else R.string.terminal_enter_fullscreen,
-                                ),
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                                modifier = Modifier.size(20.dp),
-                            )
+                            IconButton(
+                                onClick = {
+                                    if (fullscreen) {
+                                        fsMenuOpen = !fsMenuOpen
+                                    } else {
+                                        setFullscreen(true)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .size(32.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = if (fullscreen) Icons.Filled.Menu
+                                        else Icons.Filled.Fullscreen,
+                                        contentDescription = stringResource(
+                                            if (fullscreen) R.string.terminal_switch_tab
+                                            else R.string.terminal_enter_fullscreen,
+                                        ),
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    if (fullscreen && indicatorColor != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .size(6.dp)
+                                                .background(indicatorColor, CircleShape),
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (fullscreen) {
+                                DropdownMenu(
+                                    expanded = fsMenuOpen,
+                                    onDismissRequest = { fsMenuOpen = false },
+                                    modifier = Modifier.widthIn(min = 220.dp, max = 320.dp),
+                                ) {
+                                    tabs.forEachIndexed { listIndex, listTab ->
+                                        val listTitle by remember(listTab.sessionId) {
+                                            listTab.emulator.terminalTitle.map { it.ifBlank { null } }
+                                        }.collectAsState(initial = null)
+                                        val listReconnecting by listTab.isReconnecting.collectAsState()
+                                        val listColor = profileColors[listTab.profileId]
+                                        val isSelected = listIndex == clampedIndex
+
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    listColor?.let { color ->
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .padding(end = 8.dp)
+                                                                .size(8.dp)
+                                                                .background(color, CircleShape),
+                                                        )
+                                                    }
+                                                    Text(
+                                                        resolveTabTitle(
+                                                            programTitle = listTitle,
+                                                            label = listTab.label,
+                                                            multiplexerName = listTab.multiplexerName,
+                                                            followSession = tabTitlesFollowSession,
+                                                        ),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else null,
+                                                    )
+                                                }
+                                            },
+                                            leadingIcon = {
+                                                if (isSelected) {
+                                                    Icon(
+                                                        Icons.Filled.Check,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(18.dp),
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                    )
+                                                } else {
+                                                    Spacer(Modifier.size(18.dp))
+                                                }
+                                            },
+                                            trailingIcon = {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    if (listReconnecting) {
+                                                        Icon(
+                                                            Icons.Filled.Autorenew,
+                                                            contentDescription = stringResource(R.string.terminal_reconnecting),
+                                                            modifier = Modifier.size(14.dp),
+                                                            tint = MaterialTheme.colorScheme.error,
+                                                        )
+                                                        Spacer(Modifier.width(4.dp))
+                                                    }
+                                                    if (isSelected) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(24.dp)
+                                                                .clickable {
+                                                                    viewModel.closeTab(listTab.sessionId)
+                                                                },
+                                                            contentAlignment = Alignment.Center,
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Filled.Close,
+                                                                contentDescription = stringResource(R.string.terminal_close),
+                                                                modifier = Modifier.size(16.dp),
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            onClick = {
+                                                fsMenuOpen = false
+                                                viewModel.selectTab(listIndex)
+                                            },
+                                        )
+                                    }
+
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                if (newTabLoading) stringResource(R.string.terminal_new_tab_connecting)
+                                                else stringResource(R.string.terminal_sessions),
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            if (newTabLoading) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(18.dp),
+                                                    strokeWidth = 2.dp,
+                                                )
+                                            } else {
+                                                Icon(
+                                                    Icons.Filled.Add,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp),
+                                                )
+                                            }
+                                        },
+                                        enabled = !newTabLoading,
+                                        onClick = {
+                                            fsMenuOpen = false
+                                            viewModel.addTab()
+                                        },
+                                    )
+
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(stringResource(R.string.terminal_exit_fullscreen))
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Filled.FullscreenExit,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                            )
+                                        },
+                                        onClick = {
+                                            fsMenuOpen = false
+                                            setFullscreen(false)
+                                        },
+                                    )
+                                }
+                            }
                         }
                     }
 
