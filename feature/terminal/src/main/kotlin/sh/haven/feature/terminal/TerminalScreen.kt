@@ -521,6 +521,7 @@ fun TerminalScreen(
     val view = LocalView.current
     val window = remember(view) { view.context.findActivity()?.window }
     LaunchedEffect(fullscreen, window) {
+        if (fullscreenOverride != null) return@LaunchedEffect
         onFullscreenChanged(fullscreen)
         if (window != null) {
             val controller = WindowCompat.getInsetsController(window, view)
@@ -584,10 +585,10 @@ fun TerminalScreen(
             }
             hadTabsBefore = true
         } else {
-            hadTabsBefore = false
-            if (fullscreen) {
+            if (hadTabsBefore && fullscreen) {
                 setFullscreen(false)
             }
+            hadTabsBefore = false
         }
     }
     val activeTabIndex by viewModel.activeTabIndex.collectAsState()
@@ -1972,6 +1973,7 @@ fun TerminalScreen(
                                 initialFontSize = fontSize.sp,
                                 typeface = hackTypeface,
                                 keyboardEnabled = true,
+                                showSoftKeyboard = (!physicalKeyboardAttached && autoShowKeyboardInTerminal) || (imeVisible && isActive) || (imeRestoreTick > 0 && isActive),
                                 // Only the active tab restores; adjacent pager
                                 // pages stay composed and must not fight over
                                 // the IME (#515).
