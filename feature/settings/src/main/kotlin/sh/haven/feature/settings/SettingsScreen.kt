@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.VpnLock
@@ -209,6 +210,7 @@ fun SettingsScreen(
     val showCopyOutputButton by viewModel.showCopyOutputButton.collectAsState()
     val keepScreenOnInTerminal by viewModel.keepScreenOnInTerminal.collectAsState()
     val autoShowKeyboardInTerminal by viewModel.autoShowKeyboardInTerminal.collectAsState()
+    val autoFullscreenInTerminal by viewModel.autoFullscreenInTerminal.collectAsState()
     val hideNavBarInTerminal by viewModel.hideNavBarInTerminal.collectAsState()
     val connectionLoggingEnabled by viewModel.connectionLoggingEnabled.collectAsState()
     val excludeFromRecents by viewModel.excludeFromRecents.collectAsState()
@@ -775,6 +777,13 @@ fun SettingsScreen(
             subtitle = stringResource(R.string.settings_hide_nav_bar_in_terminal_subtitle),
             checked = hideNavBarInTerminal,
             onCheckedChange = viewModel::setHideNavBarInTerminal,
+        )
+        SettingsToggleItem(
+            icon = Icons.Filled.Fullscreen,
+            title = stringResource(R.string.settings_auto_fullscreen_in_terminal_title),
+            subtitle = stringResource(R.string.settings_auto_fullscreen_in_terminal_subtitle),
+            checked = autoFullscreenInTerminal,
+            onCheckedChange = viewModel::setAutoFullscreenInTerminal,
         )
         SettingsToggleItem(
             icon = Icons.Filled.Keyboard,

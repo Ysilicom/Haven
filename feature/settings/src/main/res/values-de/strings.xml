@@ -298,6 +298,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Hardware-Tastatur Strg+Umschalt+V fügt aus der Android-Zwischenablage ein. Aus leitet die Tasten an die Remote-Shell weiter.</string>
     <string name="settings_auto_show_keyboard_title">Tastatur beim Öffnen eines Terminals anzeigen</string>
     <string name="settings_auto_show_keyboard_subtitle">Die Soft-Tastatur erscheint automatisch beim Öffnen oder Wechseln zu einer Terminal-Sitzung. Für schreibgeschützte Sitzungen deaktivieren; die Tastatur-Taste der Symbolleiste und ein Doppeltipp holen sie weiterhin hervor</string>
+    <string name="settings_auto_fullscreen_in_terminal_title">Vollbild standardmäßig beim Öffnen des Terminals</string>
+    <string name="settings_auto_fullscreen_in_terminal_subtitle">Terminalsitzungen werden standardmäßig im immersiven Vollbildmodus geöffnet. Die schwebende Schaltfläche und die Zurück-Geste beenden den Vollbildmodus</string>
 
     <!-- Navigation Tabs dialog -->
 

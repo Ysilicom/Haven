@@ -508,6 +508,9 @@ class SettingsViewModel @Inject constructor(
     val autoShowKeyboardInTerminal: StateFlow<Boolean> = preferencesRepository.autoShowKeyboardInTerminal
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val autoFullscreenInTerminal: StateFlow<Boolean> = preferencesRepository.autoFullscreenInTerminal
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val hideNavBarInTerminal: StateFlow<Boolean> = preferencesRepository.hideNavBarInTerminal
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -882,6 +885,12 @@ class SettingsViewModel @Inject constructor(
     fun setAutoShowKeyboardInTerminal(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setAutoShowKeyboardInTerminal(enabled)
+        }
+    }
+
+    fun setAutoFullscreenInTerminal(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setAutoFullscreenInTerminal(enabled)
         }
     }
 

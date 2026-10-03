@@ -13,12 +13,9 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * #675 — the soft keyboard auto-shows when a terminal tab becomes active. The
- * new toggle lets that be turned off for read-only sessions; it defaults to on
- * so existing behaviour is unchanged until the user opts out, and the boolean
- * round-trips for the Settings row.
+ * Unit test for default fullscreen preference when opening a terminal session.
  */
-class AutoShowKeyboardPrefTest {
+class AutoFullscreenPrefTest {
 
     @get:Rule
     val tempFolder = TemporaryFolder()
@@ -34,9 +31,9 @@ class AutoShowKeyboardPrefTest {
     @Test
     fun defaultIsOn() = runBlocking {
         assertEquals(
-            "auto-show must stay on by default so existing behaviour is unchanged (#675)",
+            "auto fullscreen must stay on by default",
             true,
-            repo().autoShowKeyboardInTerminal.first(),
+            repo().autoFullscreenInTerminal.first(),
         )
     }
 
@@ -44,8 +41,8 @@ class AutoShowKeyboardPrefTest {
     fun roundTripsBothWays() = runBlocking {
         val repo = repo()
         for (value in listOf(false, true)) {
-            repo.setAutoShowKeyboardInTerminal(value)
-            assertEquals(value, repo.autoShowKeyboardInTerminal.first())
+            repo.setAutoFullscreenInTerminal(value)
+            assertEquals(value, repo.autoFullscreenInTerminal.first())
         }
     }
 }

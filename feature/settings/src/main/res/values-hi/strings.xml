@@ -298,6 +298,8 @@
     <string name="settings_ctrl_shift_v_subtitle">Hardware keyboard Ctrl+Shift+V से Android clipboard paste होता है। बंद रहने पर keys रिमोट shell को भेजी जाती हैं।</string>
     <string name="settings_auto_show_keyboard_title">टर्मिनल खुलने पर कीबोर्ड दिखाएँ</string>
     <string name="settings_auto_show_keyboard_subtitle">टर्मिनल सत्र खोलने या बदलने पर सॉफ्ट कीबोर्ड अपने आप उभरता है। केवल-पढ़ने वाले सत्रों के लिए इसे बंद रखें; टूलबार का कीबोर्ड बटन और डबल-टैप इसे कभी भी दिखा देते हैं</string>
+    <string name="settings_auto_fullscreen_in_terminal_title">टर्मिनल खोलने पर डिफ़ॉल्ट रूप से फ़ुलस्क्रीन</string>
+    <string name="settings_auto_fullscreen_in_terminal_subtitle">टर्मिनल सत्र डिफ़ॉल्ट रूप से इमर्सिव फ़ुलस्क्रीन मोड में खुलते हैं। फ़्लोटिंग बटन और बैक जेस्चर फ़ुलस्क्रीन से बाहर निकलते हैं</string>
 
     <!-- Navigation Tabs dialog -->
 

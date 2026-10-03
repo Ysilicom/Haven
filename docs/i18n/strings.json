@@ -33652,6 +33652,44 @@
      }
     },
     {
+     "name": "settings_auto_fullscreen_in_terminal_title",
+     "en": "Open terminal in fullscreen",
+     "comment": "Ctrl+Shift+V paste",
+     "args": [],
+     "t": {
+      "ar": "ملء الشاشة افتراضيًا عند فتح الطرفية",
+      "bn": "টার্মিনাল খোলার সময় ডিফল্ট পূর্ণস্ক্রিন",
+      "de": "Vollbild standardmäßig beim Öffnen des Terminals",
+      "es": "Pantalla completa por defecto al abrir el terminal",
+      "fr": "Plein écran par défaut à l’ouverture du terminal",
+      "hi": "टर्मिनल खोलने पर डिफ़ॉल्ट रूप से फ़ुलस्क्रीन",
+      "ja": "ターミナル開時にデフォルトで全画面表示",
+      "ko": "터미널 열 때 기본 전체 화면",
+      "pt": "Tela cheia por padrão ao abrir o terminal",
+      "ru": "Полноэкранный режим по умолчанию при открытии терминала",
+      "zh": "打开终端时默认全屏"
+     }
+    },
+    {
+     "name": "settings_auto_fullscreen_in_terminal_subtitle",
+     "en": "Terminal sessions open in immersive fullscreen mode by default. The floating button and Back gesture exit fullscreen",
+     "comment": "Ctrl+Shift+V paste",
+     "args": [],
+     "t": {
+      "ar": "تفتح جلسات الطرفية في وضع ملء الشاشة الغامر افتراضيًا. يتيح الزر العائم وإيماءة الرجوع الخروج من ملء الشاشة",
+      "bn": "টার্মিনাল সেশনগুলি ডিফল্টরূপে ইমার্সিভ পূর্ণস্ক্রিন মোডে খোলে। ভাসমান বোতাম এবং ব্যাক অঙ্গভঙ্গি পূর্ণস্ক্রিন থেকে প্রস্থান করে",
+      "de": "Terminalsitzungen werden standardmäßig im immersiven Vollbildmodus geöffnet. Die schwebende Schaltfläche und die Zurück-Geste beenden den Vollbildmodus",
+      "es": "Las sesiones de terminal se abren en modo de pantalla completa envolvente por defecto. El botón flotante y el gesto Atrás salen de pantalla completa",
+      "fr": "Les sessions de terminal s’ouvrent en mode plein écran immersif par défaut. Le bouton flottant et le geste Retour permettent d’en sortir",
+      "hi": "टर्मिनल सत्र डिफ़ॉल्ट रूप से इमर्सिव फ़ुलस्क्रीन मोड में खुलते हैं। फ़्लोटिंग बटन और बैक जेस्चर फ़ुलस्क्रीन से बाहर निकलते हैं",
+      "ja": "ターミナルセッションはデフォルトで没入型全画面モードで開きます。フローティングボタンと戻るジェスチャーで全画面を終了できます",
+      "ko": "터미널 세션이 기본적으로 몰입형 전체 화면 모드로 열립니다. 플로팅 버튼과 뒤로 가기 제스처로 전체 화면을 종료합니다",
+      "pt": "As sessões de terminal abrem em modo de tela cheia imersivo por padrão. O botão flutuante e o gesto Voltar saem da tela cheia",
+      "ru": "Терминальные сессии по умолчанию открываются в иммерсивном полноэкранном режиме. Плавающая кнопка и жест «Назад» выходят из полноэкранного режима",
+      "zh": "打开终端会话时默认进入沉浸式全屏模式。可点击浮动按钮或返回手势退出全屏"
+     }
+    },
+    {
      "name": "settings_nav_tab_visibility_auto_title",
      "en": "Auto",
      "comment": "Navigation Tabs dialog",

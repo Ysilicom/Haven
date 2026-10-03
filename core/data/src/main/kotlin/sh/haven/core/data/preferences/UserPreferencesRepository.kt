@@ -80,6 +80,7 @@ class UserPreferencesRepository @Inject constructor(
     private val showCopyOutputButtonKey = booleanPreferencesKey("show_copy_output_button")
     private val keepScreenOnInTerminalKey = booleanPreferencesKey("keep_screen_on_in_terminal")
     private val autoShowKeyboardInTerminalKey = booleanPreferencesKey("auto_show_keyboard_in_terminal")
+    private val autoFullscreenInTerminalKey = booleanPreferencesKey("auto_fullscreen_in_terminal")
     private val hideNavBarInTerminalKey = booleanPreferencesKey("hide_nav_bar_in_terminal")
     private val connectionLoggingEnabledKey = booleanPreferencesKey("connection_logging_enabled")
     private val excludeFromRecentsKey = booleanPreferencesKey("exclude_from_recents")
@@ -320,6 +321,20 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setAutoShowKeyboardInTerminal(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[autoShowKeyboardInTerminalKey] = enabled
+        }
+    }
+
+    /**
+     * Enter immersive fullscreen by default when opening a terminal session.
+     * On by default.
+     */
+    val autoFullscreenInTerminal: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[autoFullscreenInTerminalKey] ?: true
+    }
+
+    suspend fun setAutoFullscreenInTerminal(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[autoFullscreenInTerminalKey] = enabled
         }
     }
 

@@ -444,6 +444,7 @@ fun TerminalScreen(
     showCopyOutputButton: Boolean = false,
     keepScreenOnInTerminal: Boolean = false,
     autoShowKeyboardInTerminal: Boolean = true,
+    autoFullscreenInTerminal: Boolean = true,
     mouseInputEnabled: Boolean = true,
     terminalRightClick: Boolean = false,
     tapToPositionCursorOnPrompt: Boolean = false,
@@ -575,9 +576,18 @@ fun TerminalScreen(
     BackHandler(enabled = fullscreen && !fsMenuOpen) { setFullscreen(false) }
     BackHandler(enabled = fullscreen && fsMenuOpen) { fsMenuOpen = false }
     val tabs by viewModel.tabs.collectAsState()
-    LaunchedEffect(tabs.isEmpty()) {
-        if (tabs.isEmpty() && fullscreen) {
-            setFullscreen(false)
+    var hadTabsBefore by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(tabs.isNotEmpty(), autoFullscreenInTerminal) {
+        if (tabs.isNotEmpty()) {
+            if (!hadTabsBefore && autoFullscreenInTerminal) {
+                setFullscreen(true)
+            }
+            hadTabsBefore = true
+        } else {
+            hadTabsBefore = false
+            if (fullscreen) {
+                setFullscreen(false)
+            }
         }
     }
     val activeTabIndex by viewModel.activeTabIndex.collectAsState()
@@ -1054,6 +1064,7 @@ fun TerminalScreen(
     // Navigate to specific tab if requested
     LaunchedEffect(navigateToProfileId) {
         if (navigateToProfileId != null) {
+            if (autoFullscreenInTerminal) setFullscreen(true)
             viewModel.selectTabByProfileId(navigateToProfileId)
         }
     }
@@ -1061,6 +1072,7 @@ fun TerminalScreen(
     // Open new session (new tab) for profile if requested from Connections screen
     LaunchedEffect(newSessionProfileId) {
         if (newSessionProfileId != null) {
+            if (autoFullscreenInTerminal) setFullscreen(true)
             viewModel.addSshTabForProfile(newSessionProfileId)
         }
     }
@@ -1073,6 +1085,7 @@ fun TerminalScreen(
     // here runs once the screen is composed after the pager switch.
     LaunchedEffect(openLocalShellProfileId) {
         if (openLocalShellProfileId != null) {
+            if (autoFullscreenInTerminal) setFullscreen(true)
             viewModel.addLocalTabForProfile(openLocalShellProfileId, desktopDeId = openLocalShellDeId)
         }
     }

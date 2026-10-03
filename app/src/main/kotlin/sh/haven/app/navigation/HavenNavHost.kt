@@ -445,6 +445,8 @@ fun HavenNavHost(
         .collectAsState(initial = false)
     val autoShowKeyboardInTerminal by preferencesRepository.autoShowKeyboardInTerminal
         .collectAsState(initial = true)
+    val autoFullscreenInTerminal by preferencesRepository.autoFullscreenInTerminal
+        .collectAsState(initial = true)
     val hideNavBarInTerminal by preferencesRepository.hideNavBarInTerminal
         .collectAsState(initial = false)
     val mouseInputEnabled by preferencesRepository.mouseInputEnabled
@@ -517,6 +519,11 @@ fun HavenNavHost(
     // Profile id an OPENAI connect landed on; consumed by the Chat screen on first show.
     var pendingChatProfileId by rememberSaveable { mutableStateOf<String?>(null) }
 
+    // Desktop fullscreen hides bottom nav and system bars
+    var desktopFullscreen by remember { mutableStateOf(false) }
+    // Terminal fullscreen — persists across navigation and rotation, owned by TerminalScreen (#138)
+    var terminalFullscreen by rememberSaveable { mutableStateOf(false) }
+
     // Local-shell open requests from the Desktop → Manage shell button (#168).
     // Always-composed HavenNavHost collects them, sets the pending profile,
     // and animates to the Terminal page; TerminalScreen creates the tab once
@@ -525,6 +532,9 @@ fun HavenNavHost(
         desktopViewModel.openLocalShellRequests.collect { req ->
             pendingLocalShellProfileId = req.profileId
             pendingLocalShellDeId = req.desktopDeId
+            if (autoFullscreenInTerminal) {
+                terminalFullscreen = true
+            }
             requestScreen(Screen.Terminal)
         }
     }
@@ -545,11 +555,6 @@ fun HavenNavHost(
     var terminalBackground by remember { mutableStateOf<Color?>(null) }
     var terminalReorderMode by remember { mutableStateOf(false) }
     var openToolbarConfig by remember { mutableStateOf(false) }
-
-    // Desktop fullscreen hides bottom nav and system bars
-    var desktopFullscreen by remember { mutableStateOf(false) }
-    // Terminal fullscreen — persists across navigation and rotation, owned by TerminalScreen (#138)
-    var terminalFullscreen by rememberSaveable { mutableStateOf(false) }
 
     // Drive window-level immersive fullscreen (decor-fits-system-windows false +
     // hide status/nav bars with swipe-to-reveal) from the root nav host so content
@@ -683,12 +688,18 @@ fun HavenNavHost(
                 Screen.Connections -> ConnectionsScreen(
                     onNavigateToTerminal = { profileId ->
                         pendingTerminalProfileId = profileId
+                        if (autoFullscreenInTerminal) {
+                            terminalFullscreen = true
+                        }
                         coroutineScope.launch {
                             requestScreen(Screen.Terminal)
                         }
                     },
                     onNavigateToNewSession = { profileId ->
                         pendingNewSessionProfileId = profileId
+                        if (autoFullscreenInTerminal) {
+                            terminalFullscreen = true
+                        }
                         coroutineScope.launch {
                             requestScreen(Screen.Terminal)
                         }
@@ -757,6 +768,7 @@ fun HavenNavHost(
                         showCopyOutputButton = showCopyOutputButton,
                         keepScreenOnInTerminal = keepScreenOnInTerminal,
                         autoShowKeyboardInTerminal = autoShowKeyboardInTerminal,
+                        autoFullscreenInTerminal = autoFullscreenInTerminal,
                         mouseInputEnabled = mouseInputEnabled,
                         terminalRightClick = terminalRightClick,
                         tapToPositionCursorOnPrompt = tapToPositionCursorOnPrompt,
