@@ -154,6 +154,7 @@ DOWNLOADED_APK=""
 
 if [ -n "$AUTH_TOKEN" ]; then
     echo "🔑 检测到 GitHub Token，正在自动下载 app-release 制品..."
+    ARTIFACTS_DATA=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts")
     ARTIFACT_ID=$(echo "$ARTIFACTS_DATA" | jq -r '.artifacts[] | select(.name=="app-release") | .id' | head -n 1)
     if [ -z "$ARTIFACT_ID" ] || [ "$ARTIFACT_ID" = "null" ]; then
         ARTIFACT_ID=$(echo "$ARTIFACTS_DATA" | jq -r '.artifacts[0].id')
