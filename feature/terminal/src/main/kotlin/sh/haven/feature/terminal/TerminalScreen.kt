@@ -959,9 +959,15 @@ fun TerminalScreen(
     // When the IME last went away, so the pause handler below can tell "the user
     // dismissed it" from "the system took it as we were backgrounded" (#515).
     var imeHiddenAtMs by remember { mutableLongStateOf(0L) }
+    var sessionImeRequested by rememberSaveable(activeTabIndex) {
+        mutableStateOf(!physicalKeyboardAttached && autoShowKeyboardInTerminal)
+    }
     LaunchedEffect(imeVisible) {
         if (wasImeVisible && !imeVisible) {
             imeHiddenAtMs = android.os.SystemClock.elapsedRealtime()
+        }
+        if (imeVisible) {
+            sessionImeRequested = true
         }
         wasImeVisible = imeVisible
     }
@@ -1028,6 +1034,7 @@ fun TerminalScreen(
                 "physicalKeyboard=$physicalKeyboardAttached action=$action",
         )
         if (willRestore) {
+            sessionImeRequested = true
             if (view.hasWindowFocus()) {
                 imeRestoreTick++
             } else {
@@ -1043,6 +1050,8 @@ fun TerminalScreen(
                 awaitingFocus = listener
                 view.viewTreeObserver.addOnWindowFocusChangeListener(listener)
             }
+        } else if (!autoShowKeyboardInTerminal) {
+            sessionImeRequested = false
         }
         onPauseOrDispose {
             awaitingFocus?.let { view.viewTreeObserver.removeOnWindowFocusChangeListener(it) }
@@ -1973,7 +1982,7 @@ fun TerminalScreen(
                                 initialFontSize = fontSize.sp,
                                 typeface = hackTypeface,
                                 keyboardEnabled = true,
-                                showSoftKeyboard = (!physicalKeyboardAttached && autoShowKeyboardInTerminal) || (imeVisible && isActive) || (imeRestoreTick > 0 && isActive),
+                                showSoftKeyboard = sessionImeRequested && !physicalKeyboardAttached && isActive,
                                 // Only the active tab restores; adjacent pager
                                 // pages stay composed and must not fight over
                                 // the IME (#515).
@@ -2023,8 +2032,10 @@ fun TerminalScreen(
                                         .getRootWindowInsets(rootView)
                                         ?.isVisible(WindowInsetsCompat.Type.ime()) == true
                                     if (imeShowing) {
+                                        sessionImeRequested = false
                                         controller.hide(WindowInsetsCompat.Type.ime())
                                     } else {
+                                        sessionImeRequested = true
                                         focusRequester.requestFocus()
                                         controller.show(WindowInsetsCompat.Type.ime())
                                     }
