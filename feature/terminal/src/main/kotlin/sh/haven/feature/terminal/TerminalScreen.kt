@@ -508,7 +508,7 @@ fun TerminalScreen(
     // the parent-managed state so fullscreen persists across navigation and stays
     // strictly synchronized with window insets (#138). When null, falls back to
     // local rememberSaveable state.
-    var localFullscreen by rememberSaveable { mutableStateOf(false) }
+    var localFullscreen by rememberSaveable { mutableStateOf(autoFullscreenInTerminal) }
     val fullscreen = fullscreenOverride ?: localFullscreen
     val setFullscreen: (Boolean) -> Unit = { newFullscreen ->
         if (fullscreenOverride != null) {

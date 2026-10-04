@@ -522,7 +522,7 @@ fun HavenNavHost(
     // Desktop fullscreen hides bottom nav and system bars
     var desktopFullscreen by remember { mutableStateOf(false) }
     // Terminal fullscreen — persists across navigation and rotation, owned by TerminalScreen (#138)
-    var terminalFullscreen by rememberSaveable { mutableStateOf(false) }
+    var terminalFullscreen by rememberSaveable { mutableStateOf(autoFullscreenInTerminal) }
 
     // Local-shell open requests from the Desktop → Manage shell button (#168).
     // Always-composed HavenNavHost collects them, sets the pending profile,
