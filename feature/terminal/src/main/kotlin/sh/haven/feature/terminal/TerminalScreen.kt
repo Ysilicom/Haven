@@ -14,11 +14,13 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -2128,7 +2130,7 @@ fun TerminalScreen(
                                     )
                                 },
                         ) {
-                            IconButton(
+                            Surface(
                                 onClick = {
                                     if (fullscreen) {
                                         fsMenuOpen = !fsMenuOpen
@@ -2136,11 +2138,49 @@ fun TerminalScreen(
                                         setFullscreen(true)
                                     }
                                 },
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surface.copy(
+                                    alpha = if (fullscreen && tabs.size > 1) 0.78f else 0.55f,
+                                ),
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                                tonalElevation = if (fullscreen && tabs.size > 1) 3.dp else 0.dp,
+                                border = if (fullscreen && tabs.size > 1) {
+                                    BorderStroke(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    )
+                                } else {
+                                    null
+                                },
                                 modifier = Modifier
                                     .padding(2.dp)
-                                    .size(32.dp),
+                                    .defaultMinSize(minWidth = 32.dp, minHeight = 32.dp),
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(
+                                        horizontal = if (fullscreen && tabs.size > 1) 8.dp else 6.dp,
+                                        vertical = 4.dp,
+                                    ),
+                                ) {
+                                    if (fullscreen && indicatorColor != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(indicatorColor, CircleShape),
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                    }
+                                    if (fullscreen && tabs.size > 1) {
+                                        Text(
+                                            text = "${clampedIndex + 1}/${tabs.size}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(end = 4.dp),
+                                        )
+                                    }
                                     Icon(
                                         imageVector = if (fullscreen) Icons.Filled.Menu
                                         else Icons.Filled.Fullscreen,
@@ -2148,17 +2188,11 @@ fun TerminalScreen(
                                             if (fullscreen) R.string.terminal_switch_tab
                                             else R.string.terminal_enter_fullscreen,
                                         ),
-                                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface.copy(
+                                            alpha = if (fullscreen && tabs.size > 1) 0.85f else 0.55f,
+                                        ),
+                                        modifier = Modifier.size(18.dp),
                                     )
-                                    if (fullscreen && indicatorColor != null) {
-                                        Box(
-                                            modifier = Modifier
-                                                .align(Alignment.TopEnd)
-                                                .size(6.dp)
-                                                .background(indicatorColor, CircleShape),
-                                        )
-                                    }
                                 }
                             }
 
