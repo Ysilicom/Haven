@@ -59,7 +59,7 @@ It uses an independent application ID (`sh.haven.app.widget`), enabling seamless
 ### 3. 📱 True Edge-to-Edge Remote Desktop (VNC & RDP)
 - **Immersive Full-Screen Canvas**: Sessions extend into system status and navigation bars, eliminating black borders and letterboxing.
 - **Landscape GUI Optimization**: Maximized viewport tailored for graphical desktop productivity on mobile screens.
-- **IME Composition & Key Handling Fix**: Eliminates remote desktop input issues, duplicate key echoes, and IME composition corruption in VNC/RDP.
+- **Robust Session Lifecycle**: Clean recovery of system bars and display cutout modes upon session exit or disconnect.
 
 ### 4. 🚀 Production-Grade R8 Optimization & Automated Cloud CI Workflow
 - **Deeply Minified Release**: GitHub Actions CI builds `assembleArm64FullRelease` with complete R8 code shrinking, dead-code stripping, resource shrinking, non-debuggable flag, dropping APK size to ~80MB and boosting cold start speed.

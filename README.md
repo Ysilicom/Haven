@@ -63,7 +63,7 @@ It uses an independent application ID (`sh.haven.app.widget`), enabling seamless
 #### 3. 📱 True Edge-to-Edge Remote Desktop (VNC & RDP)
 - **Immersive Full-Screen Canvas**: Sessions extend into system status and navigation bars, eliminating black borders and letterboxing.
 - **Landscape GUI Optimization**: Maximized viewport tailored for graphical desktop productivity on mobile screens.
-- **IME Composition & Key Handling Fix**: Eliminates remote desktop input issues, duplicate key echoes, and IME composition corruption in VNC/RDP.
+- **Robust Session Lifecycle**: Clean recovery of system bars and display cutout modes upon session exit or disconnect.
 
 #### 4. 🚀 Production-Grade R8 Optimization & Automated Cloud CI Workflow
 - **Deeply Minified Release**: GitHub Actions CI builds `assembleArm64FullRelease` with complete R8 code shrinking, dead-code stripping, resource shrinking, non-debuggable flag, dropping APK size to ~80MB and boosting cold start speed.
@@ -204,7 +204,7 @@ Havenx 在继承原版全部强大功能的基础上，专属引入了 **ServerB
 #### 3. 📱 VNC & RDP 真·Edge-to-Edge 沉浸式全屏
 - **全屏沉浸**：全屏模式下突破系统边界，自动延伸至状态栏与底部导航栏，彻底消除黑边与冗余遮挡。
 - **视界最大化**：特别针对横屏操作进行了视觉优化，让手机操作远程桌面（GUI）具备最大可用可视面积与沉浸感。
-- **输入法深度优化**：彻底解决远程桌面上中文输入法合成崩溃与按键重复 Echo 现象。
+- **稳健生命周期恢复**：会话断开或退出全屏时，平滑且可靠地恢复系统状态栏、导航栏与刘海屏（Cutout）显示模式。
 
 #### 4. 🚀 生产级 Release R8 极致压缩与全自动云端构建/签名流
 - **R8 Release 全量优化**：在 CI 构建流中编译 `assembleArm64FullRelease`，启用全量代码混淆、死代码剔除与资源缩减（Resource Shrinking），关闭调试负担（Non-debuggable），将 APK 体积精简至 ~80MB，显著降低体积并飞跃提升冷启动响应。
