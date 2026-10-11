@@ -71,9 +71,18 @@ class UmlGuestManager @Inject constructor(
         _state.value = if (rootfsReady) SetupState.Ready else SetupState.NotStaged
     }
 
-    /** The staged rootfs image; 1 GiB, the mkfs'd size of the asset. */
+    /** The staged rootfs image; 2 GiB, the mkfs'd size of the asset. */
     val rootfsFile: File
         get() = File(context.filesDir, "uml/rootfs.ext4")
+
+    /**
+     * The directory mounted as the guest's /host. The only app-storage path
+     * the guest can see (kernel hostfs setup hook); consumers write recipe
+     * scripts here and read guest-written output (install markers,
+     * recovery images) from it.
+     */
+    val guestShareDir: File
+        get() = File(context.filesDir, "uml/share")
 
     private val rootfsReady: Boolean
         get() = rootfsFile.length() == ROOTFS_SIZE_BYTES &&
@@ -181,6 +190,12 @@ class UmlGuestManager @Inject constructor(
         /** Appended verbatim to the kernel command line (recovery sessions pass
          *  haven_nbd_host/haven_nbd_port). */
         val extraKernelArgs: List<String> = emptyList(),
+        /** Env lines ("<VAR>=<value>") appended to the launcher environment.
+         *  The launcher (uml_net.c) reads passthrough forwarding targets from
+         *  PASST_TFWD/PASST_UFWD; a desktop session forwards its VNC port
+         *  through them. Plain guest boots leave empty — console sessions get
+         *  no forwarding. */
+        val extraEnv: List<String> = emptyList(),
     ) {
         enum class Status { CONNECTING, CONNECTED, DISCONNECTED, ERROR }
     }
@@ -202,6 +217,7 @@ class UmlGuestManager @Inject constructor(
         profileId: String,
         label: String,
         extraKernelArgs: List<String> = emptyList(),
+        extraEnv: List<String> = emptyList(),
     ): String {
         reapDeadSessionsForProfile(profileId)
         val sessionId = UUID.randomUUID().toString()
@@ -212,6 +228,7 @@ class UmlGuestManager @Inject constructor(
                 label = label,
                 status = SessionState.Status.CONNECTING,
                 extraKernelArgs = extraKernelArgs,
+                extraEnv = extraEnv,
             ))
         }
         return sessionId
@@ -251,11 +268,9 @@ class UmlGuestManager @Inject constructor(
         val cacheDir = context.cacheDir.absolutePath
         val nat = { lib: String -> File(natDir, lib).absolutePath }
         val cmd = nat("libuml-net.so")
-        // hostfs is confined to this directory by the kernel's hostfs= setup
-        // hook (fs/hostfs/hostfs_kern.c): the only app-storage path the guest
-        // can see, used as the output channel for recovery images.
-        val shareDir = File(context.filesDir, "uml/share").apply { mkdirs() }
+        val shareDir = guestShareDir.apply { mkdirs() }
         val extra = _sessions.value[sessionId]?.extraKernelArgs.orEmpty()
+        val extraEnv = _sessions.value[sessionId]?.extraEnv.orEmpty()
         val args = arrayOf(
             cmd,
             nat("libuml-passt.so"),
@@ -279,6 +294,7 @@ class UmlGuestManager @Inject constructor(
             "PATH=/system/bin:/vendor/bin:$natDir",
             "TERM=xterm-256color",
             "PASST_NO_SANDBOX=1",
+            *extraEnv.toTypedArray(),
         )
         return Triple(cmd, args, env)
     }
@@ -497,7 +513,7 @@ class UmlGuestManager @Inject constructor(
         private const val ASSET_PATH = "uml/rootfs-aarch64.ext4"
 
         /** mkfs'd image size — the staging idempotency check. */
-        const val ROOTFS_SIZE_BYTES = 1_073_741_824L
+        const val ROOTFS_SIZE_BYTES = 2_147_483_648L
 
         /**
          * Bump when the shipped asset changes in a way the size check cannot
@@ -514,11 +530,17 @@ class UmlGuestManager @Inject constructor(
          * so guests booted with no route), and the launcher's raw-tty /
          * endpoint-share-backup / agent-shell-hatch fixes. Existing installs
          * re-stage once; endpoint.env survives via the share backup.
+         * v11 ships uml-guest-9: 2 GiB image (the desktop package set filled
+         * a 1 GiB image to 96%), /dev/pts and /dev/shm mounted at sysinit
+         * (xterm needs ptys, wlroots needs POSIX shm), and the agent TUI
+         * parked by a haven.desktop= kernel arg so the desktop recipe owns
+         * the console. Existing installs re-stage once; endpoint.env
+         * survives via the share backup.
          */
-        const val ROOTFS_VERSION = 10
+        const val ROOTFS_VERSION = 11
 
         /** Space check before unpacking: image + headroom for writes. */
-        const val ROOTFS_FREE_SPACE_BYTES = 1_600L * 1024 * 1024
+        const val ROOTFS_FREE_SPACE_BYTES = 2_600L * 1024 * 1024
 
         private const val UNPACK_BUFFER_SIZE = 1 shl 16
     }

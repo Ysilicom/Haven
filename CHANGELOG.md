@@ -5,6 +5,33 @@ the corresponding GitHub Release; a release can't ship without its section
 (enforced by `scripts/check-changelog.sh` in CI). The GitHub "Full Changelog"
 compare link is appended automatically — don't add it here.
 
+## v5.89.23
+
+- **UML desktops on the Manage screen.** The UML guest mirrors the proot desktop stack: Desktop → Manage has a UML section with Install/Start rows for X11 and Wayland. Install boots the guest headlessly and installs its recipe (X11: Xvnc, openbox, xterm; Wayland: sway, wayvnc, foot); Start boots the guest with the display on a passthrough port and opens a normal VNC tab at 127.0.0.1:<port>; Stop powers the guest down. Ports are sticky per kind and come out of the same pool as the proot desktops', so they can't collide.
+
+## v5.89.22
+
+- **Reticulum TCP reconnect stays live.** A dropped TCP session reconnected on the app's retry loop, but the reconnected interface came online without its read loop: the session looked connected, no inbound data arrived, and nothing said why — it stayed deaf until the interface was re-added by hand. The upstream reticulum-kt fix is merged with the fork's backoff kept: the read loop is started with the reconnected interface, and leaked interface resources are reaped as interfaces churn. Device-tested with a real server kill: the app reconnected on its own, made a fresh session link, and a shell round trip worked over the new socket.
+- **GPS logging no longer crashes on Android 8/9.** The GNSS measurement recording path called GnssClock.getElapsedRealtimeNanos, an API 29 call, behind a guard the OS doesn't check — an Android 8 or 9 device taking GPS logs threw in the measurement callback. The call is now properly version-gated and falls back to the system clock.
+
+## v5.89.21
+
+- **Huawei devices keep the normal keyboard in the terminal.** The default keyboard recipe includes the visible-password input hint, and Huawei's system IME (both the Android and HarmonyOS builds) answers that hint by forcing its locked minimal keypad, with no IME switch and no CJK input (#684). On Huawei devices the default now drops only that hint, so the ordinary keyboard comes back. One trade-off: Gboard's silent autocorrect can apply again there; Raw mode and Custom mode remain ways to steer this per device.
+- **Terminal tools over MCP tell a stale session id from a dead tab.** When a session reconnects its ids churn, and tools reading scrollback or driving the terminal used to answer "open a terminal tab on this session", sending the agent in circles under a dead id. They now say the id is gone and point at list_sessions for fresh ids.
+
+## v5.89.20
+
+- **Renaming an attached session explains itself.** Long-press rename on an attached tmux session used to return silently when the session record was gone, its cached name was unset, or the profile had no rename template; the dialog appeared to do nothing. Each guard now reports what failed.
+- **The rename dialog refuses a name tmux already has.** The label is sanitized before it reaches tmux, so a name like "my.session" arrives as "my-session" and can collide with an existing session. The dialog checks the sanitized name against the server's session list and blocks the rename instead of letting tmux reject it.
+
+## v5.89.19
+
+- **Chat and model profiles report their connection state.** A profile for an OpenAI-compatible server never showed as connected: no status dot, tapping the row dropped you at the password prompt instead of the chat, and Disconnect never appeared. Their sessions now count like any other transport, so the row shows status and Disconnect while a chat is open.
+- **A queued post-login command submits on Windows.** The command was sent with LF, which a Windows console pty doesn't take as Enter — it sat unsubmitted until you pressed Enter yourself. It now sends CR, the byte a real Enter press produces; POSIX shells fold it back to a newline, so they behave as before. (#680)
+- **The terminal identifies itself to programs that ask.** The terminal now answers the XTVERSION query with Haven's version (for example Haven(5.89.19)), so tmux and similar programs can name-match the outer terminal.
+- **Terminal fix.** An Alt chord on a non-ASCII keyboard layout was written as two separate chunks, which let a program at the other end see a lone Escape followed by the character; the chord is now delivered in one write.
+- **Dependency updates.** sshlib 0.5.0; Tailscale 1.104.0 in the rclone bridge; wrapper-validation action 6.4.0.
+
 ## v5.89.18
 
 - **A setting to keep the soft keyboard down when a terminal opens.** By default a terminal still raises the keyboard as soon as it opens; turning the new setting off leaves it hidden until you tap the input area or the keyboard key. (#675)

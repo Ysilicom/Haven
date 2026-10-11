@@ -88,6 +88,7 @@ class DesktopViewModel @Inject constructor(
     private val usbDriveVmManager: sh.haven.app.usb.UsbDriveVmManager,
     private val umlRecoveryManager: sh.haven.app.usb.UmlRecoveryManager,
     private val systemVmManager: sh.haven.core.local.SystemVmManager,
+    private val umlDesktopManager: sh.haven.core.local.uml.UmlDesktopManager,
 ) : ViewModel() {
 
     // --- Distro / DE management (issue #162 Phase 3c) ---
@@ -434,6 +435,7 @@ class DesktopViewModel @Inject constructor(
      * round-trip with a direct `addVncSession` (or `addWaylandTab`) call.
      */
     fun startDesktop(de: ProotManager.DesktopEnvironment) {
+        viewModelScope.launch { preferencesRepository.setLastProotDe(de.id) }
         viewModelScope.launch {
             val shellCmd = preferencesRepository.waylandShellCommand.first()
             Log.d(TAG, "startDesktop: ${LogRedact.of(de.label)} shell=$shellCmd")
@@ -522,6 +524,146 @@ class DesktopViewModel @Inject constructor(
     fun stopDesktop(de: ProotManager.DesktopEnvironment) {
         viewModelScope.launch(Dispatchers.IO) {
             desktopManager.stopDesktop(de)
+        }
+    }
+
+    // --- UML guest desktops (docs/plans/uml-dm.md stage 2) -------------------
+    //
+    // The proot desktop section's mirror: recipe lives in the guest, the
+    // manager owns install/start/stop, and the VNC tab opens on the RUNNING
+    // transition. Availability is the NativeFeatures.uml probe — the same
+    // gate as the GUEST transport (TransportAvailability), so the section is
+    // hidden rather than broken on builds without the UML payload.
+
+    val umlDesktopState
+        : StateFlow<Map<sh.haven.core.local.uml.UmlDesktopManager.Kind,
+            sh.haven.core.local.uml.UmlDesktopManager.DesktopState>>
+        get() = umlDesktopManager.state
+
+    val umlAvailable: Boolean get() = umlDesktopManager.isAvailable
+
+    fun umlInstall(kind: sh.haven.core.local.uml.UmlDesktopManager.Kind) =
+        umlDesktopManager.installDesktop(kind)
+
+    fun umlStart(kind: sh.haven.core.local.uml.UmlDesktopManager.Kind) {
+        viewModelScope.launch { preferencesRepository.setLastUmlKind(kind.id) }
+        umlDesktopManager.startDesktop(kind)
+    }
+
+    fun umlStop(kind: sh.haven.core.local.uml.UmlDesktopManager.Kind) =
+        umlDesktopManager.stopDesktop(kind)
+
+    // --- Primary "Start a desktop" backend (Quick = UML, Full = proot) ------
+    //
+    // The Desktop screen's hero action drives one of the two backends. Which
+    // one is last-used, not a fixed default: the moment the user starts a
+    // desktop (or taps the switch link) that backend becomes theirs, so an
+    // existing proot user's button never silently changes under them. Before
+    // any choice is recorded it falls back by capability — Quick when the UML
+    // payload is present (it starts in ~4s), otherwise Full.
+
+    /** "quick" or "full", as chosen; empty until the user has picked once. */
+    val primaryDesktopBackendPref: StateFlow<String> =
+        preferencesRepository.primaryDesktopBackend
+            .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    /** The last-started UML kind id ("x11"/"wayland"); empty if none. */
+    val lastUmlKindPref: StateFlow<String> =
+        preferencesRepository.lastUmlKind
+            .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    /** The last-started proot DE id; empty if none. */
+    val lastProotDePref: StateFlow<String> =
+        preferencesRepository.lastProotDe
+            .stateIn(viewModelScope, SharingStarted.Eagerly, "")
+
+    /**
+     * The backend the hero Start actually drives right now: the recorded
+     * choice, or the capability fallback when none exists yet. A recorded
+     * "quick" is honoured even if UML later becomes unavailable — the row
+     * then reports why it can't start rather than quietly switching.
+     */
+    val primaryBackend: String
+        get() = primaryDesktopBackendPref.value.ifEmpty {
+            if (umlAvailable) "quick" else "full"
+        }
+
+    /** True when the hero Start drives the fast UML path. */
+    val primaryIsQuick: Boolean get() = primaryBackend == "quick"
+
+    /** Flip the hero Start's backend and persist it (the switch link). */
+    fun setPrimaryBackend(backend: String) {
+        viewModelScope.launch { preferencesRepository.setPrimaryDesktopBackend(backend) }
+    }
+
+    /**
+     * The hero Start action: launch whichever backend [primaryBackend] names,
+     * recording the choice first so it becomes last-used. Quick starts the
+     * last-used UML kind (defaulting to X11); Full starts the last-used proot
+     * DE (defaulting to the first installed one). Surfaces a message when the
+     * target isn't ready to start rather than doing nothing.
+     */
+    fun startPrimaryDesktop() {
+        if (primaryIsQuick) {
+            val states = umlDesktopManager.state.value
+            // Prefer the kind the user last started, but only if it is
+            // installed — a last-used Wayland with only X11 installed must
+            // start X11, not fail on the missing one. Fall back to any
+            // installed kind, then X11 as the nominal default.
+            val lastInstalled = sh.haven.core.local.uml.UmlDesktopManager.Kind.values()
+                .firstOrNull { it.id == lastUmlKindPref.value && states[it]?.installed == true }
+            val kind = lastInstalled
+                ?: states.values.firstOrNull { it.installed }?.kind
+                ?: sh.haven.core.local.uml.UmlDesktopManager.Kind.X11
+            umlStart(kind)
+        } else {
+            val de = installedDesktops.firstOrNull { it.id == lastProotDePref.value }
+                ?: installedDesktops.firstOrNull()
+            if (de == null) {
+                viewModelScope.launch {
+                    _userMessages.emit("No desktop installed yet — pick one under Full Linux below.")
+                }
+                return
+            }
+            startDesktop(de)
+        }
+    }
+
+    /**
+     * Open a tab for each RUNNING UML desktop, once per (kind, port) run;
+     * stopped runs remove their key so a restart with a different port opens
+     * again, and the same port doesn't (addVncSession dedupes too).
+     */
+    private val openedUmlRuns = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+
+    init {
+        viewModelScope.launch {
+            umlDesktopManager.state.collect { map ->
+                map.forEach { (kind, st) ->
+                    val key = "${kind.id}:${st.port}"
+                    val running = st.status ==
+                        sh.haven.core.local.uml.UmlDesktopManager.DesktopState.Status.RUNNING
+                    val port = st.port
+                    if (running && port != null && port in 5901..5999) {
+                        if (openedUmlRuns.add(key)) {
+                            addVncSession(
+                                host = "127.0.0.1",
+                                port = port,
+                                password = null,
+                                username = null,
+                                sshForward = false,
+                                sshSessionId = null,
+                                profileId = null,
+                                colorDepth = "BPP_24_TRUE",
+                            )
+                        }
+                    } else if (st.status ==
+                        sh.haven.core.local.uml.UmlDesktopManager.DesktopState.Status.STOPPED
+                    ) {
+                        openedUmlRuns.remove(key)
+                    }
+                }
+            }
         }
     }
 
@@ -2299,14 +2441,23 @@ class DesktopViewModel @Inject constructor(
         }
     }
 
+    /**
+     * VNC keyboard traffic runs on a single-permit dispatcher so IME
+     * commits execute in submission order — plain Dispatchers.IO let two
+     * commits reach the wire out of order (bug #5). [VncClient.keyboardLock]
+     * keeps each shift-pair sequence atomic; this keeps the sequences
+     * ordered relative to each other.
+     */
+    private val vncKeyboardDispatcher = Dispatchers.IO.limitedParallelism(1)
+
     fun sendVncKey(keySym: Int, pressed: Boolean) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(vncKeyboardDispatcher) {
             (activeTab.value as? DesktopTab.Vnc)?.client?.updateKey(keySym, pressed)
         }
     }
 
     fun typeVncKey(keySym: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(vncKeyboardDispatcher) {
             (activeTab.value as? DesktopTab.Vnc)?.client?.type(keySym)
         }
     }
@@ -2319,7 +2470,7 @@ class DesktopViewModel @Inject constructor(
      * regardless of synth-typing fidelity).
      */
     fun typeVncText(text: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(vncKeyboardDispatcher) {
             val client = (activeTab.value as? DesktopTab.Vnc)?.client ?: return@launch
             client.copyText(text)
             client.typeText(text)

@@ -72,6 +72,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -88,6 +89,7 @@ import sh.haven.core.local.proot.DistroCatalog
 import sh.haven.core.local.proot.MirrorCatalog
 import sh.haven.core.local.proot.MirrorRegion
 import sh.haven.core.local.proot.PackageFamily
+import sh.haven.core.local.uml.UmlDesktopManager
 import sh.haven.core.data.preferences.AppWindowDef
 import sh.haven.feature.connections.R
 import sh.haven.app.R as AppR
@@ -146,6 +148,7 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
     val systemVmState by viewModel.systemVmState.collectAsState()
     val systemVmImages by viewModel.systemVmImages.collectAsState()
     val systemVmBusy by viewModel.systemVmBusy.collectAsState()
+    val umlDesktopState by viewModel.umlDesktopState.collectAsState()
     // The import draft is held by the ViewModel, not this composable: a rotation
     // recreates the activity, and neither `remember` nor `rememberSaveable`
     // survives it here (the composable isn't in the composition when state is
@@ -161,6 +164,12 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
+        PrimaryDesktopSection(
+            viewModel = viewModel,
+            umlState = umlDesktopState,
+            prootStates = desktopStates,
+        )
+
         DesktopManagerSection(
             viewModel = viewModel,
             installedDesktops = installedDesktops,
@@ -215,6 +224,14 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             onSetCustomDesktopCommand = { cmd, thenStart -> viewModel.setCustomDesktopCommand(cmd, thenStart) },
         )
 
+        UmlGuestSection(
+            available = viewModel.umlAvailable,
+            state = umlDesktopState,
+            onInstall = { viewModel.umlInstall(it) },
+            onStart = { viewModel.umlStart(it) },
+            onStop = { viewModel.umlStop(it) },
+        )
+
         AppWindowsSection(
             defs = appWindowDefs,
             launchingIds = launchingIds,
@@ -230,6 +247,9 @@ fun DesktopManagerScreen(viewModel: DesktopViewModel = hiltViewModel()) {
             onSetDefaultScale = { viewModel.setAppWindowDefaultScale(it) },
         )
 
+        // The QEMU system VM stays last: it's the slowest, most niche path
+        // (TCG boot, one at a time) and promoting it would compete with the
+        // two desktop backends for the same attention.
         SystemVmSection(
             state = systemVmState,
             images = systemVmImages,
@@ -620,6 +640,266 @@ private fun SystemVmSection(
             }
         }
     }
+}
+
+/**
+ * The Desktop screen's hero action: one "Start" that launches whichever
+ * backend the user last chose — Quick (the UML guest, ~4 s) or Full (proot,
+ * any distro / 6 desktops / GPU apps) — with the backend named on the button
+ * so there is no surprise about what will come up, and a one-line switch to
+ * the other. The choice is last-used (see [DesktopViewModel.primaryBackend]),
+ * so an existing proot user's button still says Full; a first-run user gets
+ * the fast path when the UML payload is present. Running desktops from either
+ * backend are listed here as chips with Stop, which unifies *state* without
+ * pretending the two backends share stop semantics.
+ *
+ * The detailed per-DE / per-kind controls stay in the sections below; this
+ * card is the "I want a desktop now" verb, not a replacement for them.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PrimaryDesktopSection(
+    viewModel: DesktopViewModel,
+    umlState: Map<UmlDesktopManager.Kind, UmlDesktopManager.DesktopState>,
+    prootStates: Map<ProotManager.DesktopEnvironment, DesktopManager.DesktopInstance>,
+) {
+    // Collected, not read through the ViewModel's plain getter: the switch
+    // link only writes the preference, and nothing else on this screen
+    // changes with it — a getter read would leave the button label stale
+    // until some unrelated state recomposed the screen.
+    val backendPref by viewModel.primaryDesktopBackendPref.collectAsState()
+    val umlAvailable = viewModel.umlAvailable
+    val quick = (backendPref.ifEmpty { if (umlAvailable) "quick" else "full" }) == "quick"
+    val installedDesktops = viewModel.installedDesktops
+    // Quick can only start when the UML payload is present and at least one
+    // kind is installed; Full can only start when a proot DE is installed.
+    // The button reflects the *effective* target, so it never promises a
+    // start that the chosen backend can't deliver.
+    val quickReady = umlAvailable && umlState.values.any { it.installed }
+    val fullReady = installedDesktops.isNotEmpty()
+    val busy = umlState.values.any {
+        it.status == UmlDesktopManager.DesktopState.Status.STARTING ||
+            it.status == UmlDesktopManager.DesktopState.Status.INSTALLING
+    } || prootStates.values.any {
+        it.state == DesktopManager.DesktopState.STARTING
+    }
+    val canStart = (quick && quickReady) || (!quick && fullReady)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                stringResource(AppR.string.app_desktop_primary_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(
+                    if (quick) AppR.string.app_desktop_primary_subline_quick
+                    else AppR.string.app_desktop_primary_subline_full,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(
+                    onClick = { viewModel.startPrimaryDesktop() },
+                    enabled = canStart && !busy,
+                ) {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        stringResource(
+                            if (quick) AppR.string.app_desktop_primary_start_quick
+                            else AppR.string.app_desktop_primary_start_full,
+                        ),
+                    )
+                }
+                if (busy) {
+                    Spacer(Modifier.width(8.dp))
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                }
+            }
+            // Only offer the switch when the other backend is actually usable;
+            // switching to a backend with nothing installed would just move the
+            // dead-end. When UML is absent the choice is moot — there is one
+            // path — so no link is shown.
+            if (umlAvailable && (quick && fullReady || !quick && quickReady)) {
+                TextButton(onClick = { viewModel.setPrimaryBackend(if (quick) "full" else "quick") }) {
+                    Text(
+                        stringResource(
+                            if (quick) AppR.string.app_desktop_primary_switch_to_full
+                            else AppR.string.app_desktop_primary_switch_to_quick,
+                        ),
+                    )
+                }
+            }
+
+            val running = buildList {
+                umlState.forEach { (kind, st) ->
+                    if (st.status == UmlDesktopManager.DesktopState.Status.RUNNING) {
+                        add(stringResource(AppR.string.app_desktop_primary_chip_quick, kind.title) to
+                            { viewModel.umlStop(kind) })
+                    }
+                }
+                prootStates.forEach { (de, inst) ->
+                    if (inst.state == DesktopManager.DesktopState.RUNNING) {
+                        add(stringResource(AppR.string.app_desktop_primary_chip_full, de.label) to
+                            { viewModel.stopDesktop(de) })
+                    }
+                }
+            }
+            if (running.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    stringResource(AppR.string.app_desktop_primary_running),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    running.forEach { (label, stop) ->
+                        AssistChip(
+                            onClick = stop,
+                            label = { Text(label) },
+                            leadingIcon = { Icon(Icons.Filled.Stop, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * "UML guest desktop" section (docs/plans/uml-dm.md stage 2): the proot
+ * desktop rows' mirror for desktops running inside the UML guest's own
+ * kernel. Install = apk add in a headless guest; Start = boots the guest
+ * with a passt forward, runs the recipe, and the ViewModel opens the VNC
+ * tab when the banner answers; Stop = poweroff. One UML desktop at a time
+ * (each is a full kernel with a 2 GiB cap), so Start/Install are disabled
+ * while one is up — proot rows have no such constraint.
+ */
+@Composable
+private fun UmlGuestSection(
+    available: Boolean,
+    state: Map<UmlDesktopManager.Kind, UmlDesktopManager.DesktopState>,
+    onInstall: (UmlDesktopManager.Kind) -> Unit,
+    onStart: (UmlDesktopManager.Kind) -> Unit,
+    onStop: (UmlDesktopManager.Kind) -> Unit,
+) {
+    if (!available) return
+    val busy = state.values.any {
+        it.status == UmlDesktopManager.DesktopState.Status.INSTALLING ||
+            it.status == UmlDesktopManager.DesktopState.Status.STARTING
+    }
+    val anyRunning = state.values.any {
+        it.status == UmlDesktopManager.DesktopState.Status.RUNNING
+    }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                stringResource(AppR.string.app_uml_desktop_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(AppR.string.app_uml_desktop_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+
+            UmlDesktopManager.Kind.values().forEach { kind ->
+                val st = state[kind] ?: UmlDesktopManager.DesktopState(kind)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(kind.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                        Text(
+                            umlRowStatus(st),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (!st.installed) {
+                        TextButton(
+                            onClick = { onInstall(kind) },
+                            enabled = !busy && st.status == UmlDesktopManager.DesktopState.Status.STOPPED,
+                        ) {
+                            Text(stringResource(AppR.string.app_uml_desktop_install))
+                        }
+                    }
+                    if (st.status == UmlDesktopManager.DesktopState.Status.RUNNING) {
+                        TextButton(
+                            onClick = { onStop(kind) },
+                            enabled = !busy,
+                        ) {
+                            Icon(Icons.Filled.Stop, contentDescription = null)
+                            Spacer(Modifier.width(4.dp))
+                            Text(stringResource(AppR.string.app_system_vm_stop))
+                        }
+                    } else {
+                        // Start works from a stop or an error state; the port
+                        // pref rides on, and the recipe re-applies itself.
+                        IconButton(
+                            onClick = { onStart(kind) },
+                            enabled = st.installed && !busy && !anyRunning,
+                        ) {
+                            Icon(
+                                Icons.Filled.PlayArrow,
+                                contentDescription = stringResource(AppR.string.app_uml_desktop_start_cd, kind.title),
+                            )
+                        }
+                    }
+                }
+                if (st.status == UmlDesktopManager.DesktopState.Status.ERROR) {
+                    st.error?.let { err ->
+                        Text(
+                            err,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 8,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                    }
+                }
+                HorizontalDivider()
+            }
+        }
+    }
+}
+
+/** One-line status for a UML desktop row. */
+@Composable
+private fun umlRowStatus(st: UmlDesktopManager.DesktopState): String = when (st.status) {
+    UmlDesktopManager.DesktopState.Status.STOPPED -> stringResource(
+        if (st.installed) AppR.string.app_uml_desktop_installed
+        else AppR.string.app_uml_desktop_not_installed,
+    )
+    UmlDesktopManager.DesktopState.Status.INSTALLING ->
+        stringResource(AppR.string.app_uml_desktop_installing)
+    UmlDesktopManager.DesktopState.Status.STARTING ->
+        stringResource(AppR.string.app_uml_desktop_starting, st.port ?: 0)
+    UmlDesktopManager.DesktopState.Status.RUNNING ->
+        stringResource(AppR.string.app_uml_desktop_running, st.port ?: 0)
+    UmlDesktopManager.DesktopState.Status.ERROR ->
+        stringResource(AppR.string.app_uml_desktop_failed)
 }
 
 /**

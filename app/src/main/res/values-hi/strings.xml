@@ -163,7 +163,17 @@
     <string name="app_present_pip">पिक्चर में पिक्चर</string>
 
     <!-- Local Linux desktop manager -->
-    <string name="app_desktop_manager_title">स्थानीय Linux डेस्कटॉप</string>
+    <string name="app_desktop_manager_title">पूर्ण Linux (proot)</string>
+    <string name="app_desktop_primary_title">Linux डेस्कटॉप</string>
+    <string name="app_desktop_primary_subline_quick">लगभग 4 सेकंड में तैयार · Alpine ऐप्स · एक समय में एक डेस्कटॉप</string>
+    <string name="app_desktop_primary_subline_full">कोई भी डिस्ट्रो · 6 डेस्कटॉप · आपके अन्य ऐप्स के साथ चलता है</string>
+    <string name="app_desktop_primary_start_quick">शुरू करें · त्वरित (UML)</string>
+    <string name="app_desktop_primary_start_full">शुरू करें · पूर्ण (proot)</string>
+    <string name="app_desktop_primary_switch_to_full">इसके बजाय पूर्ण Linux उपयोग करें</string>
+    <string name="app_desktop_primary_switch_to_quick">इसके बजाय त्वरित डेस्कटॉप उपयोग करें</string>
+    <string name="app_desktop_primary_running">चल रहा है</string>
+    <string name="app_desktop_primary_chip_quick">त्वरित · %1$s</string>
+    <string name="app_desktop_primary_chip_full">पूर्ण · %1$s</string>
     <string name="app_desktop_manager_description">Haven के अंदर पूरा Linux डेस्कटॉप चलाएँ। एक distro चुनें, एक डेस्कटॉप वातावरण (Xfce4, Openbox, या Sway) इंस्टॉल करें, फिर लॉन्च करें — किसी अलग सर्वर या कनेक्शन की ज़रूरत नहीं।</string>
 
     <!-- App windows / installed-app launcher (#250) -->
@@ -204,6 +214,18 @@
     <string name="app_system_vm_import_source">इमेज URL या डिवाइस पर पथ</string>
     <string name="app_system_vm_import_arch">गेस्ट आर्किटेक्चर</string>
     <string name="app_system_vm_import_arch_hint">इमेज से मेल खाना चाहिए — गलत टारगेट कोई त्रुटि नहीं दिखाता, वह बस कभी बूट नहीं होता।</string>
+
+    <!-- Desktop manager: desktops inside the UML guest (docs/plans/uml-dm.md) -->
+    <string name="app_uml_desktop_title">UML गेस्ट डेस्कटॉप</string>
+    <string name="app_uml_desktop_description">UML गेस्ट के अपने कर्नेल में चलने वाले डेस्कटॉप, VNC पर दिखाए जाते हैं। एक बार में एक (प्रत्येक एक पूरा कर्नेल); पैकेज इंस्टॉल में कुछ मिनट लगते हैं।</string>
+    <string name="app_uml_desktop_install">इंस्टॉल</string>
+    <string name="app_uml_desktop_installed">इंस्टॉल है</string>
+    <string name="app_uml_desktop_not_installed">इंस्टॉल नहीं है</string>
+    <string name="app_uml_desktop_installing">पैकेज इंस्टॉल हो रहे हैं…</string>
+    <string name="app_uml_desktop_starting">पोर्ट %1$d पर शुरू हो रहा है…</string>
+    <string name="app_uml_desktop_running">चल रहा है · VNC 127.0.0.1:%1$d</string>
+    <string name="app_uml_desktop_failed">विफल</string>
+    <string name="app_uml_desktop_start_cd">%1$s डेस्कटॉप शुरू करें</string>
     <string name="app_window_scale_saved">इस ऐप के डिफ़ॉल्ट आकार के रूप में सहेजा गया</string>
 
     <!-- Agent Activity log — result summaries (#239) -->

@@ -131,9 +131,11 @@ import org.connectbot.terminal.ModifierManager
 import org.connectbot.terminal.TerminalEmulator
 import sh.haven.core.terminal.HavenKeyboardMode
 import sh.haven.core.terminal.HavenTerminal
+import sh.haven.core.terminal.defaultKeyboardModeForDevice
 import sh.haven.core.data.preferences.ToolbarItem
 import sh.haven.core.data.preferences.ToolbarLayout
 import sh.haven.core.data.preferences.UserPreferencesRepository
+import sh.haven.core.ssh.SessionManager
 
 /** Horizontal padding on the tab strip. */
 private val TAB_STRIP_PADDING = 4.dp
@@ -1285,8 +1287,13 @@ fun TerminalScreen(
                 // drop out of composition (mode flip) while it is open.
                 var renameTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
                 renameTarget?.let { (sessionId, label) ->
+                    // Fresh as of the actions-menu open, which kicked off
+                    // refreshRemoteSessions; tmux stays the final authority
+                    // (a race surfaces through the exec stderr toast).
+                    val remoteSessions by viewModel.remoteSessionNames.collectAsState()
                     RenameSessionDialog(
                         currentLabel = label,
+                        existingNames = remoteSessions,
                         onDismiss = { renameTarget = null },
                         onRename = { newName ->
                             viewModel.renameAttachedSession(sessionId, newName)
@@ -1975,7 +1982,10 @@ fun TerminalScreen(
                             rawKeyboardMode -> HavenKeyboardMode.Raw
                             allowStandardKeyboard -> HavenKeyboardMode.Standard
                             customKeyboardFlags != null -> HavenKeyboardMode.Custom(customKeyboardFlags!!)
-                            else -> HavenKeyboardMode.Secure
+                            // #684: on some OEMs (Huawei confirmed) the Secure
+                            // recipe's password variation locks the IME to a
+                            // minimal system keypad, so the default adapts.
+                            else -> defaultKeyboardModeForDevice(Build.MANUFACTURER)
                         }
                         CompositionLocalProvider(LocalClipboardManager provides smartClipboard) {
                             HavenTerminal(
@@ -3019,8 +3029,14 @@ private fun RenameSessionDialog(
     currentLabel: String,
     onDismiss: () -> Unit,
     onRename: (String) -> Unit,
+    existingNames: List<String> = emptyList(),
 ) {
     var label by remember { mutableStateOf(currentLabel) }
+    // tmux receives the sanitized name, so a label can collide with an
+    // existing session whose text doesn't match ("my.session" renames to
+    // "my-session"). Preflight on exactly what tmux would see.
+    val candidate = SessionManager.sanitizeSessionName(label)
+    val taken = candidate in existingNames
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -3031,12 +3047,18 @@ private fun RenameSessionDialog(
                 onValueChange = { label = it },
                 label = { Text(stringResource(R.string.terminal_name)) },
                 singleLine = true,
+                isError = taken,
+                supportingText = if (taken) {
+                    { Text(stringResource(R.string.terminal_rename_exists, candidate)) }
+                } else {
+                    null
+                },
             )
         },
         confirmButton = {
             TextButton(
                 onClick = { onRename(label) },
-                enabled = label.isNotBlank() && label != currentLabel,
+                enabled = label.isNotBlank() && label != currentLabel && !taken,
             ) {
                 Text(stringResource(R.string.terminal_rename))
             }
