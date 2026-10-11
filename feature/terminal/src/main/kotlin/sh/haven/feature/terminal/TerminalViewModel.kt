@@ -1291,11 +1291,15 @@ class TerminalViewModel @Inject constructor(
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
                 xtversion = XtversionIdentity.of(appContext),
                 )
-                // Disable grow backfill across all transports: an Ink/TUI line-diff
-                // repaint strands popped scrollback, and standard shells experience cursor
-                // desync when scrollback is popped on mobile keyboard toggle. Anchor grows
-                // at the top with blank rows at the bottom.
-                reEmulator.backfillScrollbackOnGrow = false
+                // The guest console runs opencode, whose Ink renderer diffs
+                // line-by-line against its own model; a backfilling grow
+                // reflows content under it and every skipped line strands
+                // popped scrollback (see GrowBackfillDiffRenderTest). Anchor
+                // grows at the top instead — the app's WINCH repaint fills
+                // the new rows.
+                if (source.transportType == "GUEST") {
+                    reEmulator.backfillScrollbackOnGrow = false
+                }
                 // Replay buffered output into the fresh emulator BEFORE wiring the
                 // live stream, so the restore and new output don't interleave.
                 source.snapshot(sessionId)?.let { buffered ->
@@ -1386,8 +1390,11 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
-            // Disable grow backfill: prevents scrollback popping and cursor desync on resize.
-            emulator.backfillScrollbackOnGrow = false
+            // Guest console: disable grow backfill — Ink's line-diff repaint
+            // strands popped scrollback in skipped rows (GrowBackfillDiffRenderTest).
+            if (source.transportType == "GUEST") {
+                emulator.backfillScrollbackOnGrow = false
+            }
 
             localSession.start()
 
@@ -1704,7 +1711,6 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
-            emulator.backfillScrollbackOnGrow = false
 
             rnsSession.start()
 
@@ -1786,7 +1792,6 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
-            emulator.backfillScrollbackOnGrow = false
 
             currentTabs.add(
                 TerminalTab(
@@ -1865,7 +1870,6 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
-            emulator.backfillScrollbackOnGrow = false
 
             currentTabs.add(
                 TerminalTab(
@@ -1944,7 +1948,6 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
-            emulator.backfillScrollbackOnGrow = false
 
             currentTabs.add(
                 TerminalTab(
@@ -2052,7 +2055,6 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
-            emulator.backfillScrollbackOnGrow = false
 
             moshSession.start()
 
@@ -2161,7 +2163,6 @@ class TerminalViewModel @Inject constructor(
                 maxScrollbackLines = terminalScrollbackRows.value,
                 inlineImages = inlineImagesPolicy(terminalInlineImages.value, inlineImageConsent.state(sessionId)),
             )
-            emulator.backfillScrollbackOnGrow = false
 
             etSession.start()
 

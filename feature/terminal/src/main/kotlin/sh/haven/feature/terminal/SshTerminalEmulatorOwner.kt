@@ -115,9 +115,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
             maxScrollbackLines = scrollback,
             inlineImages = inlineImages,
             xtversion = XtversionIdentity.of(appContext),
-        ).apply {
-            backfillScrollbackOnGrow = false
-        }
+        )
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -217,9 +215,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
             inlineImages = inlineImagesPolicy(inlineImagesMode, inlineImageConsent.state(sessionId)),
             onKeyboardInput = { data -> bundle.inputSink(data) },
             onResize = { dims -> bundle.resizeSink(dims) },
-        ).apply {
-            backfillScrollbackOnGrow = false
-        }
+        )
         bundle.emulator = emulator
         bundles[sessionId] = bundle
 
