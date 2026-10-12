@@ -20,6 +20,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import sh.haven.core.data.db.entities.ConnectionLog
 import sh.haven.core.data.repository.ConnectionLogRepository
 import sh.haven.core.data.terminal.ScrollbackRing
+import sh.haven.core.data.terminal.TerminalDimensionsStore
 import sh.haven.core.ssh.sftp.JschSftpSession
 import sh.haven.core.ssh.sftp.SftpSession
 import sh.haven.core.ssh.sshlib.SshlibConnection
@@ -96,6 +97,7 @@ fun interface TerminalAttachmentProvider {
 class SshSessionManager @Inject constructor(
     private val hostKeyVerifier: HostKeyVerifier,
     private val connectionLogRepository: ConnectionLogRepository,
+    private val terminalDimensionsStore: TerminalDimensionsStore? = null,
 ) {
 
     // Off-thread sink for reconnect breadcrumbs — never blocks the reader /
@@ -395,9 +397,17 @@ class SshSessionManager @Inject constructor(
      * Open a shell channel on the SSH session and store it in the session state.
      * Must be called after the SSH session is connected.
      */
-    fun openShellForSession(sessionId: String) {
+    fun openShellForSession(sessionId: String, cols: Int? = null, rows: Int? = null) {
         val session = _sessions.value[sessionId] ?: return
-        val channel = session.client.openTerminalChannel(session.remoteCommand, session.requestPty)
+        val dims = terminalDimensionsStore?.getDimensions()
+        val targetCols = cols ?: dims?.columns ?: 80
+        val targetRows = rows ?: dims?.rows ?: 24
+        val channel = session.client.openTerminalChannel(
+            remoteCommand = session.remoteCommand,
+            requestPty = session.requestPty,
+            cols = targetCols,
+            rows = targetRows,
+        )
         attachShellChannel(sessionId, channel)
     }
 
@@ -505,11 +515,21 @@ class SshSessionManager @Inject constructor(
         sessionId: String,
         onDataReceived: (ByteArray, Int, Int) -> Unit = { _, _, _ -> },
         settleMs: Long = SHELL_SETTLE_MS,
+        cols: Int? = null,
+        rows: Int? = null,
     ): ShellOutcome {
         val session = _sessions.value[sessionId]
             ?: return ShellOutcome.Failed(sessionId, "session not found")
+        val dims = terminalDimensionsStore?.getDimensions()
+        val targetCols = cols ?: dims?.columns ?: 80
+        val targetRows = rows ?: dims?.rows ?: 24
         val channel = try {
-            session.client.openTerminalChannel(session.remoteCommand, session.requestPty)
+            session.client.openTerminalChannel(
+                remoteCommand = session.remoteCommand,
+                requestPty = session.requestPty,
+                cols = targetCols,
+                rows = targetRows,
+            )
         } catch (e: Exception) {
             Log.w(TAG, "openShellChannel failed for $sessionId: ${e.message}")
             updateStatus(sessionId, SessionState.Status.ERROR)
@@ -1013,7 +1033,15 @@ class SshSessionManager @Inject constructor(
                 // null and still skips this.
                 val reconnecting = _sessions.value[sessionId]
                 if (reconnecting?.headless != true || reconnecting.terminalSession != null) {
-                    val channel = newClient.openTerminalChannel(reconnecting?.remoteCommand, reconnecting?.requestPty ?: true)
+                    val dims = terminalDimensionsStore?.getDimensions()
+                    val targetCols = dims?.columns ?: 80
+                    val targetRows = dims?.rows ?: 24
+                    val channel = newClient.openTerminalChannel(
+                        remoteCommand = reconnecting?.remoteCommand,
+                        requestPty = reconnecting?.requestPty ?: true,
+                        cols = targetCols,
+                        rows = targetRows,
+                    )
                     attachShellChannel(sessionId, channel)
 
                     // Swap channel in the terminal session and restart reader

@@ -83,3 +83,6 @@ core/ffmpeg/src/main/jniLibs/*/*.so
 app/src/full/assets/uml/rootfs-aarch64.ext4.gz
 .grepai/
 build-output/
+termius-apks/
+termius-decompiled/
+scripts/inspect-termius.mjs

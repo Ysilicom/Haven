@@ -16,6 +16,7 @@ import org.connectbot.terminal.TerminalEmulatorFactory
 import sh.haven.core.data.db.entities.ConnectionProfile
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
+import sh.haven.core.data.terminal.TerminalDimensionsStore
 import sh.haven.core.ssh.SshSessionManager
 import sh.haven.core.ssh.TerminalAttachment
 import sh.haven.core.ssh.TerminalAttachmentProvider
@@ -64,6 +65,7 @@ class SshTerminalEmulatorOwner @Inject constructor(
     private val preferencesRepository: UserPreferencesRepository,
     private val registry: TerminalSessionRegistry,
     private val inlineImageConsent: InlineImageConsentRegistry,
+    private val terminalDimensionsStore: TerminalDimensionsStore,
 ) {
     /** Per-session emulator + output pipeline, owned here across ViewModel cycles. */
     class Bundle(
@@ -103,10 +105,11 @@ class SshTerminalEmulatorOwner @Inject constructor(
     }
 
     internal var emulatorFactory: EmulatorFactory = EmulatorFactory { fg, bg, alt, scrollback, inlineImages, oki, ors ->
+        val dims = terminalDimensionsStore.getDimensions()
         TerminalEmulatorFactory.create(
             autoDetectUrls = true,
-            initialRows = 24,
-            initialCols = 80,
+            initialRows = dims.rows,
+            initialCols = dims.columns,
             defaultForeground = fg,
             defaultBackground = bg,
             enableAltScreen = alt,
@@ -214,7 +217,10 @@ class SshTerminalEmulatorOwner @Inject constructor(
             maxScrollbackLines = scrollbackRows,
             inlineImages = inlineImagesPolicy(inlineImagesMode, inlineImageConsent.state(sessionId)),
             onKeyboardInput = { data -> bundle.inputSink(data) },
-            onResize = { dims -> bundle.resizeSink(dims) },
+            onResize = { dims ->
+                terminalDimensionsStore.updateMeasured(dims.columns, dims.rows)
+                bundle.resizeSink(dims)
+            },
         )
         bundle.emulator = emulator
         bundles[sessionId] = bundle

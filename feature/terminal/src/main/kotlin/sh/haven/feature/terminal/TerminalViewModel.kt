@@ -341,6 +341,7 @@ class TerminalViewModel @Inject constructor(
     private val barcodeDecoder: sh.haven.core.scan.BarcodeDecoder,
     /** Tesseract-backed OCR engine; bitmap-in, string-or-null-out. */
     private val textRecognizer: sh.haven.core.scan.TextRecognizer,
+    private val terminalDimensionsStore: sh.haven.core.data.terminal.TerminalDimensionsStore? = null,
 ) : ViewModel() {
 
     /**
@@ -1298,15 +1299,17 @@ class TerminalViewModel @Inject constructor(
                 val localScheme = effectiveColorScheme(localProfile)
                 val reInitialScheme = initialEmulatorScheme(localScheme)
                 val reCoalescer = InputCoalescer { data -> source.getActive(sessionId)?.sendInput(data) }
+                val reDims = terminalDimensionsStore?.getDimensions()
                 reEmulator = TerminalEmulatorFactory.create(
                     autoDetectUrls = true,
-                    initialRows = 24,
-                    initialCols = 80,
+                    initialRows = reDims?.rows ?: 24,
+                    initialCols = reDims?.columns ?: 80,
                     defaultForeground = Color(reInitialScheme.foreground),
                     defaultBackground = Color(reInitialScheme.background),
                     enableAltScreen = localProfile?.disableAltScreen != true && localProfile?.sessionManager != "screen",
                     onKeyboardInput = { data -> reCoalescer.send(applyModifiers(data)) },
                     onResize = { dims ->
+                        terminalDimensionsStore?.updateMeasured(dims.columns, dims.rows)
                         for (tab in _tabs.value) tab.resize(dims.columns, dims.rows)
                         source.getActive(sessionId)?.resize(dims.columns, dims.rows)
                     },
@@ -1395,16 +1398,20 @@ class TerminalViewModel @Inject constructor(
             val localProfile = profilesById[session.profileId]
             val localScheme = effectiveColorScheme(localProfile)
             val localInitialScheme = initialEmulatorScheme(localScheme)
+            val localDims = terminalDimensionsStore?.getDimensions()
+            val localRows = localDims?.rows ?: 24
+            val localCols = localDims?.columns ?: 80
             emulator = TerminalEmulatorFactory.create(
                 autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
+                initialRows = localRows,
+                initialCols = localCols,
                 defaultForeground = Color(localInitialScheme.foreground),
                 defaultBackground = Color(localInitialScheme.background),
                 enableAltScreen = localProfile?.disableAltScreen != true && localProfile?.sessionManager != "screen",
                 onKeyboardInput = { data -> localCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "LOCAL onResize: ${dims.columns}x${dims.rows}")
+                    terminalDimensionsStore?.updateMeasured(dims.columns, dims.rows)
                     for (tab in _tabs.value) {
                         tab.resize(dims.columns, dims.rows)
                     }
@@ -1419,7 +1426,7 @@ class TerminalViewModel @Inject constructor(
                 emulator.backfillScrollbackOnGrow = false
             }
 
-            localSession.start()
+            localSession.start(rows = localRows, cols = localCols)
 
             currentTabs.add(
                 TerminalTab(
@@ -1700,16 +1707,18 @@ class TerminalViewModel @Inject constructor(
             val rnsProfile = profilesById[session.profileId]
             val rnsScheme = effectiveColorScheme(rnsProfile)
             val rnsInitialScheme = initialEmulatorScheme(rnsScheme)
+            val rnsDims = terminalDimensionsStore?.getDimensions()
             emulator = TerminalEmulatorFactory.create(
                 autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
+                initialRows = rnsDims?.rows ?: 24,
+                initialCols = rnsDims?.columns ?: 80,
                 defaultForeground = Color(rnsInitialScheme.foreground),
                 defaultBackground = Color(rnsInitialScheme.background),
                 enableAltScreen = rnsProfile?.disableAltScreen != true && rnsProfile?.sessionManager != "screen",
                 onKeyboardInput = { data -> rnsCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "RNS onResize: ${dims.columns}x${dims.rows}")
+                    terminalDimensionsStore?.updateMeasured(dims.columns, dims.rows)
                     for (tab in _tabs.value) {
                         tab.resize(dims.columns, dims.rows)
                     }
@@ -1787,10 +1796,11 @@ class TerminalViewModel @Inject constructor(
             val btCoalescer = InputCoalescer { data -> btSession.sendInput(data) }
             val btScheme = effectiveColorScheme(btProfile)
             val btInitialScheme = initialEmulatorScheme(btScheme)
+            val btDims = terminalDimensionsStore?.getDimensions()
             emulator = TerminalEmulatorFactory.create(
                 autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
+                initialRows = btDims?.rows ?: 24,
+                initialCols = btDims?.columns ?: 80,
                 defaultForeground = Color(btInitialScheme.foreground),
                 defaultBackground = Color(btInitialScheme.background),
                 enableAltScreen = btProfile?.disableAltScreen != true,
@@ -1865,10 +1875,11 @@ class TerminalViewModel @Inject constructor(
             val bleCoalescer = InputCoalescer { data -> bleSession.sendInput(data) }
             val bleScheme = effectiveColorScheme(bleProfile)
             val bleInitialScheme = initialEmulatorScheme(bleScheme)
+            val bleDims = terminalDimensionsStore?.getDimensions()
             emulator = TerminalEmulatorFactory.create(
                 autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
+                initialRows = bleDims?.rows ?: 24,
+                initialCols = bleDims?.columns ?: 80,
                 defaultForeground = Color(bleInitialScheme.foreground),
                 defaultBackground = Color(bleInitialScheme.background),
                 enableAltScreen = bleProfile?.disableAltScreen != true,
@@ -1943,10 +1954,11 @@ class TerminalViewModel @Inject constructor(
             val usbCoalescer = InputCoalescer { data -> usbSession.sendInput(data) }
             val usbScheme = effectiveColorScheme(usbProfile)
             val usbInitialScheme = initialEmulatorScheme(usbScheme)
+            val usbDims = terminalDimensionsStore?.getDimensions()
             emulator = TerminalEmulatorFactory.create(
                 autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
+                initialRows = usbDims?.rows ?: 24,
+                initialCols = usbDims?.columns ?: 80,
                 defaultForeground = Color(usbInitialScheme.foreground),
                 defaultBackground = Color(usbInitialScheme.background),
                 enableAltScreen = usbProfile?.disableAltScreen != true,
@@ -2044,16 +2056,18 @@ class TerminalViewModel @Inject constructor(
             val moshCoalescer = InputCoalescer { data -> moshSession.sendInput(data) }
             val moshScheme = effectiveColorScheme(moshProfile)
             val moshInitialScheme = initialEmulatorScheme(moshScheme)
+            val moshDims = terminalDimensionsStore?.getDimensions()
             emulator = TerminalEmulatorFactory.create(
                 autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
+                initialRows = moshDims?.rows ?: 24,
+                initialCols = moshDims?.columns ?: 80,
                 defaultForeground = Color(moshInitialScheme.foreground),
                 enableAltScreen = moshProfile?.disableAltScreen != true && moshProfile?.sessionManager != "screen",
                 defaultBackground = Color(moshInitialScheme.background),
                 onKeyboardInput = { data -> moshCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "MOSH onResize: ${dims.columns}x${dims.rows}")
+                    terminalDimensionsStore?.updateMeasured(dims.columns, dims.rows)
                     for (tab in _tabs.value) {
                         tab.resize(dims.columns, dims.rows)
                     }
@@ -2152,16 +2166,18 @@ class TerminalViewModel @Inject constructor(
             val etCoalescer = InputCoalescer { data -> etSession.sendInput(data) }
             val etScheme = effectiveColorScheme(etProfile)
             val etInitialScheme = initialEmulatorScheme(etScheme)
+            val etDims = terminalDimensionsStore?.getDimensions()
             emulator = TerminalEmulatorFactory.create(
                 autoDetectUrls = true,
-                initialRows = 24,
-                initialCols = 80,
+                initialRows = etDims?.rows ?: 24,
+                initialCols = etDims?.columns ?: 80,
                 defaultForeground = Color(etInitialScheme.foreground),
                 defaultBackground = Color(etInitialScheme.background),
                 enableAltScreen = etProfile?.disableAltScreen != true && etProfile?.sessionManager != "screen",
                 onKeyboardInput = { data -> etCoalescer.send(applyModifiers(data)) },
                 onResize = { dims ->
                     Log.d(TAG, "ET onResize: ${dims.columns}x${dims.rows}")
+                    terminalDimensionsStore?.updateMeasured(dims.columns, dims.rows)
                     for (tab in _tabs.value) {
                         tab.resize(dims.columns, dims.rows)
                     }
