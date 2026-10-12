@@ -36,7 +36,23 @@ dependencyResolutionManagement {
 }
 
 // Build termlib from source (submodule fork with popScrollbackLine fix).
-// Drop this includeBuild once the fix is merged upstream and released.
+// Automatically apply Termius-grade rendering batching and sub-pixel metrics patch if needed.
+val termlibPatch = file("patches/termlib-termius-render.patch")
+if (termlibPatch.exists() && file("termlib").exists()) {
+    try {
+        val check = ProcessBuilder("git", "apply", "--check", termlibPatch.absolutePath)
+            .directory(file("termlib"))
+            .start()
+        if (check.waitFor() == 0) {
+            ProcessBuilder("git", "apply", termlibPatch.absolutePath)
+                .directory(file("termlib"))
+                .start()
+                .waitFor()
+        }
+    } catch (_: Exception) {
+        // Ignored if git is unavailable
+    }
+}
 includeBuild("termlib") {
     dependencySubstitution {
         substitute(module("org.connectbot:termlib")).using(project(":lib"))
