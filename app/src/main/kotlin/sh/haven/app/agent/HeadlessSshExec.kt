@@ -98,7 +98,8 @@ class HeadlessSshExec @Inject constructor(
             bindAddress = profile.bindAddress,
             reconnectPolicy = ConnectionConfig.ReconnectPolicy(autoReconnect = false),
         )
-        val proxy = tunnelResolver.havenProxy(profile)
+        val headlessDependentId = "headless:${profile.id}"
+        val proxy = tunnelResolver.havenProxy(profile, dependentId = headlessDependentId)
         val client = clientFactory()
         try {
             val hostKeyEntry = try {
@@ -137,7 +138,7 @@ class HeadlessSshExec @Inject constructor(
             return Outcome(client.execCommand(command, timeoutMs), reusedLiveConnection = false)
         } finally {
             runCatching { client.disconnect() }
-            runCatching { tunnelResolver.release(profile.id) }
+            runCatching { tunnelResolver.release(profile.id, dependentId = headlessDependentId) }
         }
     }
 

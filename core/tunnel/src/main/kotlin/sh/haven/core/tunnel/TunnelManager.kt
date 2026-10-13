@@ -3,6 +3,12 @@ package sh.haven.core.tunnel
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.OkHttpClient
@@ -16,6 +22,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "TunnelManager"
+private const val DEFAULT_IDLE_GRACE_MS = 20 * 60 * 1000L // 20 minutes
 
 /**
  * Constructs a live [Tunnel] from a stored [TunnelConfig]. Extracted
@@ -64,6 +71,16 @@ class TunnelManager @Inject constructor(
     private val tunnelConfigRepository: TunnelConfigRepository,
     private val tunnelFactory: TunnelFactory,
 ) {
+    /**
+     * Grace period in ms to keep an idle tunnel alive after its last dependent
+     * releases. Defaults to 20 minutes (longer than the 15-minute periodic widget
+     * worker) to keep Tailscale / WireGuard warm in the background. In unit
+     * tests this can be set to 0 to test immediate teardown.
+     */
+    var idleGraceMs: Long = DEFAULT_IDLE_GRACE_MS
+    internal var scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val idleJobs = mutableMapOf<String, Job>()
+
     private val mutex = Mutex()
     private val liveTunnels = mutableMapOf<String, Tunnel>()
     /** configId → set of profileIds currently depending on this tunnel. */
@@ -91,6 +108,7 @@ class TunnelManager @Inject constructor(
                 Log.w(TAG, "Profile $profileId switching tunnel $previous → $configId without explicit release; auto-releasing prior")
                 staleToClose = internalRelease(previous, profileId)
             }
+            idleJobs.remove(configId)?.cancel()
             val tunnel = liveTunnels[configId] ?: run {
                 val config = tunnelConfigRepository.getById(configId) ?: return@withLock null
                 tunnelFactory.create(config).also { liveTunnels[configId] = it }
@@ -122,7 +140,8 @@ class TunnelManager @Inject constructor(
 
     /**
      * Caller must hold [mutex]. Returns the [Tunnel] that should be closed
-     * outside the lock if this drained the dependent set, or null otherwise.
+     * outside the lock if this drained the dependent set and [idleGraceMs] <= 0,
+     * or null if remaining dependents exist or an idle grace timer was scheduled.
      */
     private fun internalRelease(configId: String, profileId: String): Tunnel? {
         acquiredBy.remove(profileId)
@@ -130,9 +149,33 @@ class TunnelManager @Inject constructor(
         deps.remove(profileId)
         if (deps.isEmpty()) {
             dependents.remove(configId)
-            return liveTunnels.remove(configId)
+            if (idleGraceMs <= 0L) {
+                idleJobs.remove(configId)?.cancel()
+                return liveTunnels.remove(configId)
+            } else {
+                scheduleIdleClose(configId)
+                return null
+            }
         }
         return null
+    }
+
+    private fun scheduleIdleClose(configId: String) {
+        idleJobs.remove(configId)?.cancel()
+        idleJobs[configId] = scope.launch {
+            delay(idleGraceMs)
+            val toClose = mutex.withLock {
+                idleJobs.remove(configId)
+                if (dependents[configId].isNullOrEmpty()) {
+                    liveTunnels.remove(configId)
+                } else null
+            }
+            try {
+                toClose?.close()
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to close idle tunnel $configId: ${e.message}")
+            }
+        }
     }
 
     /**
@@ -148,6 +191,7 @@ class TunnelManager @Inject constructor(
         val entry = liveTunnels.entries.firstOrNull { it.value is WireguardTunnel }
             ?: return@withLock null
         val configId = entry.key
+        idleJobs.remove(configId)?.cancel()
         // A synthetic MCP profileId only ever holds this one tunnel, so the
         // acquiredBy bookkeeping mirrors the normal acquire path.
         dependents.getOrPut(configId) { mutableSetOf() }.add(profileId)
@@ -180,6 +224,23 @@ class TunnelManager @Inject constructor(
         dependents
             .filterValues { it.isNotEmpty() }
             .map { (configId, deps) -> LiveTunnelEntry(configId, deps.toSet()) }
+    }
+
+    /**
+     * Forcibly close a tunnel and cancel any pending idle close job.
+     * Used when a tunnel config is deleted.
+     */
+    suspend fun closeTunnel(configId: String) {
+        val toClose = mutex.withLock {
+            idleJobs.remove(configId)?.cancel()
+            val tunnel = liveTunnels.remove(configId)
+            val deps = dependents.remove(configId) ?: emptySet()
+            for (p in deps) {
+                acquiredBy.remove(p)
+            }
+            tunnel
+        }
+        toClose?.close()
     }
 }
 

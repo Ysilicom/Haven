@@ -90,7 +90,7 @@ class TunnelManagerTest {
         val repo = mockk<TunnelConfigRepository>()
         coEvery { repo.getById("cfg-1") } returns wgConfig("cfg-1")
         val factory = CountingFactory()
-        val manager = TunnelManager(repo, factory)
+        val manager = TunnelManager(repo, factory).apply { idleGraceMs = 0L }
 
         val first = manager.acquire("cfg-1", "p1") as FakeTunnel
         manager.acquire("cfg-1", "p2")
@@ -104,6 +104,39 @@ class TunnelManagerTest {
         val second = manager.acquire("cfg-1", "p3")
         assertNotSame(first, second)
         assertEquals(2, factory.createCount)
+    }
+
+    @Test
+    fun releaseWithIdleGraceKeepsTunnelAlive() = runTest {
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-1") } returns wgConfig("cfg-1")
+        val factory = CountingFactory()
+        val manager = TunnelManager(repo, factory).apply { idleGraceMs = 60_000L }
+
+        val first = manager.acquire("cfg-1", "p1") as FakeTunnel
+        manager.release("p1")
+
+        assertFalse("tunnel stays alive during idle grace period", first.closed)
+        assertEquals(0, manager.dependentCount("cfg-1"))
+
+        // Re-acquire within grace period reuses the live tunnel instance
+        val second = manager.acquire("cfg-1", "p2")
+        assertSame("re-acquire reuses the existing live tunnel", first, second)
+        assertEquals(1, factory.createCount)
+    }
+
+    @Test
+    fun closeTunnelClosesImmediatelyEvenWithIdleGrace() = runTest {
+        val repo = mockk<TunnelConfigRepository>()
+        coEvery { repo.getById("cfg-1") } returns wgConfig("cfg-1")
+        val factory = CountingFactory()
+        val manager = TunnelManager(repo, factory).apply { idleGraceMs = 60_000L }
+
+        val first = manager.acquire("cfg-1", "p1") as FakeTunnel
+        manager.closeTunnel("cfg-1")
+
+        assertTrue("closeTunnel immediately closes the tunnel", first.closed)
+        assertEquals(0, manager.dependentCount("cfg-1"))
     }
 
     @Test
@@ -124,7 +157,7 @@ class TunnelManagerTest {
         coEvery { repo.getById("cfg-A") } returns wgConfig("cfg-A")
         coEvery { repo.getById("cfg-B") } returns wgConfig("cfg-B")
         val factory = CountingFactory()
-        val manager = TunnelManager(repo, factory)
+        val manager = TunnelManager(repo, factory).apply { idleGraceMs = 0L }
 
         val a = manager.acquire("cfg-A", "p1") as FakeTunnel
         manager.acquire("cfg-B", "p1") // switch without explicit release

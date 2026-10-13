@@ -201,6 +201,7 @@ internal class TunnelToolProvider(
             .firstOrNull { it.configId == id }
             ?.dependentProfileIds
             ?.forEach { tunnelManager.release(it) }
+        tunnelManager.closeTunnel(id)
         return JSONObject().apply {
             put("deleted", true)
             put("id", id)

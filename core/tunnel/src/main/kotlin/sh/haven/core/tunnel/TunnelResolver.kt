@@ -127,16 +127,16 @@ class TunnelResolver @Inject constructor(
      * Does **not** handle SSH jump-host — that needs a live SSH session,
      * so callers resolve it before delegating here.
      */
-    suspend fun havenProxy(profile: ConnectionProfile): HavenProxy? =
-        jschProxy(profile)?.let(::HavenProxy)
+    suspend fun havenProxy(profile: ConnectionProfile, dependentId: String = profile.id): HavenProxy? =
+        jschProxy(profile, dependentId)?.let(::HavenProxy)
 
     /**
      * Test-only accessor returning the underlying JSch `Proxy` so unit tests
      * can assert the proxy variant (`TunnelProxy` / `ProxySOCKS5` / etc.).
      * Production code uses [havenProxy] instead.
      */
-    internal suspend fun jschProxy(profile: ConnectionProfile): com.jcraft.jsch.Proxy? {
-        tunnelFor(profile)?.let { return TunnelProxy(it) }
+    internal suspend fun jschProxy(profile: ConnectionProfile, dependentId: String = profile.id): com.jcraft.jsch.Proxy? {
+        tunnelFor(profile, dependentId)?.let { return TunnelProxy(it) }
         val proxyHost = profile.proxyHost ?: return null
         // #227: when the proxy requires authentication, JSch throws
         // JSchProxyException("…username/password authentication requested by
@@ -184,8 +184,8 @@ class TunnelResolver @Inject constructor(
      * [socketDialer], or [havenProxy]. Idempotent — safe to call on
      * disconnect even if the profile never acquired anything.
      */
-    suspend fun release(profileId: String) {
-        tunnelManager.release(profileId)
+    suspend fun release(profileId: String, dependentId: String = profileId) {
+        tunnelManager.release(dependentId)
     }
 
     /**
@@ -215,9 +215,9 @@ class TunnelResolver @Inject constructor(
         return null
     }
 
-    private suspend fun tunnelFor(profile: ConnectionProfile): Tunnel? {
+    private suspend fun tunnelFor(profile: ConnectionProfile, dependentId: String = profile.id): Tunnel? {
         val tunnelId = profile.tunnelConfigId ?: return null
-        return tunnelManager.acquire(tunnelId, profile.id)
+        return tunnelManager.acquire(tunnelId, dependentId)
     }
 
     private fun proxySocketFactoryFor(
