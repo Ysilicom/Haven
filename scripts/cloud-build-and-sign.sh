@@ -139,7 +139,10 @@ done
 
 echo ""
 echo "================================================================="
-if [ "$CONCLUSION" != "success" ]; then
+ARTIFACTS_DATA=$(curl -s "${CURL_AUTH[@]}" "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts")
+ARTIFACT_ID=$(echo "$ARTIFACTS_DATA" | jq -r '.artifacts[]? | select(.name=="app-release") | .id' | head -n 1)
+
+if [ "$CONCLUSION" != "success" ] && [ -z "$ARTIFACT_ID" ]; then
     echo "❌ 云端构建未能成功完成 (conclusion: $CONCLUSION)"
     echo "请访问详情排查: https://github.com/$REPO/actions/runs/$RUN_ID"
     exit 1
