@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Edition-Havenx%20Private-brightgreen?style=flat-square" alt="Edition" />
   <img src="https://img.shields.io/badge/Package-sh.haven.app.widget-9cf?style=flat-square" alt="Package" />
   <img src="https://img.shields.io/badge/Android-8.0%2B-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+" />
-  <img src="https://img.shields.io/badge/Upstream-v5.89.18%20Synced-blue?style=flat-square" alt="Upstream" />
+  <img src="https://img.shields.io/badge/Upstream-v5.89.26%20Synced-blue?style=flat-square" alt="Upstream" />
   <img src="https://img.shields.io/badge/Arch-arm64--v8a-purple?style=flat-square" alt="Arch" />
   <img src="https://img.shields.io/badge/License-AGPL--3.0-orange?style=flat-square" alt="License" />
 </p>
@@ -26,9 +26,9 @@
 
 ## 📖 Overview
 
-**Havenx** is a customized, production-hardened fork based on [GlassHaven/Haven](https://github.com/GlassHaven/Haven) (continuously synchronized with upstream **v5.89.18+**).
+**Havenx** is a customized, production-hardened fork based on [GlassHaven/Haven](https://github.com/GlassHaven/Haven) (continuously synchronized with upstream **v5.89.26+**).
 
-Havenx enhances upstream Haven by providing a **ServerBox-style desktop hardware monitor widget**, **frame-zero zero-latency immersive terminal**, **true edge-to-edge remote desktop sessions**, **decoupled soft-keyboard (IME) animations**, and an **automated GitHub Actions CI pipeline with local one-key release re-signing**.
+Havenx enhances upstream Haven by providing a **ServerBox-style desktop hardware monitor widget**, **Termius-grade zero-latency startup and rendering pipeline**, **frame-zero zero-latency immersive terminal**, **true edge-to-edge remote desktop sessions**, **warm tunnel grace period management**, and an **automated GitHub Actions CI pipeline with local one-key release re-signing**.
 
 It uses an independent application ID (`sh.haven.app.widget`), enabling seamless side-by-side coexistence with the official Haven app on the same Android device.
 
@@ -45,9 +45,12 @@ It uses an independent application ID (`sh.haven.app.widget`), enabling seamless
   - System load averages (1m / 5m / 15m)
   - Disk storage utilization (used / total)
 - **Intelligent Secure Probing (`TunnelResolver`)**: Built-in smart tunnel resolver probes internal LAN/VPC nodes securely via Tailscale mesh VPN or SSH local port forwarding tunnels without needing public IP or port exposure.
+- **Warm Tunnel Grace Period & Headless Isolation**: Maintains an idle grace period for SSH and Tailscale tunnels and isolates headless background probes, preventing connection thrashing and premature teardowns during background widget polling.
 - **Low Power & One-Tap Launch**: Uses Android `WorkManager` for lightweight asynchronous background polling; tap any host card on your home screen to instantly jump directly into that host's terminal session.
 
 ### 2. ⚡ Zero-Latency Immersive Terminal & Multi-Session Experience
+- **Termius Startup Pre-Measurement Architecture**: Injects accurate grid dimensions from `TerminalDimensionsStore` during initial connection, completely eliminating startup prompt wrapping, MOTD interleaving, and layout flicker.
+- **Termius Run-Length Batching & Subpixel Metrics**: Integrates Termius terminal rendering optimizations (`termlib` patch) with run-length batching and subpixel text positioning, significantly reducing draw overhead and delivering smooth high-refresh scrolling.
 - **Frame-Zero Auto-Fullscreen**: Enters immersive fullscreen immediately upon launching a terminal session, completely eliminating black bars, visual jumping, and status bar transition jitter.
 - **Compact Session Indicator Pill**: In fullscreen mode with multiple active tabs, an elegant floating pill (e.g., `1/3`, `2/3`) displays the active session index and total count alongside host health indicators.
 - **Floating Session Switcher Menu**: One-tap floating menu to quickly switch between tabs or exit fullscreen mode without breaking your immersive workflow.

@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Edition-Havenx%20Private-brightgreen?style=flat-square" alt="Edition" />
   <img src="https://img.shields.io/badge/Package-sh.haven.app.widget-9cf?style=flat-square" alt="Package" />
   <img src="https://img.shields.io/badge/Android-8.0%2B-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8.0+" />
-  <img src="https://img.shields.io/badge/Upstream-v5.89.18%20Synced-blue?style=flat-square" alt="Upstream" />
+  <img src="https://img.shields.io/badge/Upstream-v5.89.26%20Synced-blue?style=flat-square" alt="Upstream" />
   <img src="https://img.shields.io/badge/Arch-arm64--v8a-purple?style=flat-square" alt="Arch" />
   <img src="https://img.shields.io/badge/License-AGPL--3.0-orange?style=flat-square" alt="License" />
 </p>
@@ -26,9 +26,9 @@
 
 ## 📖 项目概述
 
-**Havenx** 是专为 Android 打造的极客级远程访问、桌面监控组件与全功能移动工作区。本项目基于官方 [GlassHaven/Haven](https://github.com/GlassHaven/Haven)（持续紧密跟踪并合并上游最新代码，目前已同步至 **v5.89.18+**）进行深度定制增强。
+**Havenx** 是专为 Android 打造的极客级远程访问、桌面监控组件与全功能移动工作区。本项目基于官方 [GlassHaven/Haven](https://github.com/GlassHaven/Haven)（持续紧密跟踪并合并上游最新代码，目前已同步至 **v5.89.26+**）进行深度定制增强。
 
-Havenx 在继承原版全部强大功能的基础上，专属引入了 **ServerBox 风格桌面硬件监控小组件**、**Frame 0 零延迟沉浸式全屏终端**、**真·Edge-to-Edge 沉浸式远程桌面**、**软键盘 (IME) 防回弹与输入法深度优化**，以及 **GitHub Actions CI 云端 R8 极致优化编译 + 本地永久私钥一键重签名** 的工业级自动化流水线。
+Havenx 在继承原版全部强大功能的基础上，专属引入了 **ServerBox 风格桌面硬件监控小组件**、**Termius 级启动预测量与亚像素批量渲染架构**、**Frame 0 零延迟沉浸式全屏终端**、**真·Edge-to-Edge 沉浸式远程桌面**、**智能隧道保活与 Headless 隔离**，以及 **GitHub Actions CI 云端 R8 极致优化编译 + 本地永久私钥一键重签名** 的工业级自动化流水线。
 
 定制独立应用包名（`sh.haven.app.widget`），支持在同一台 Android 手机上与官方原版 Haven 完美共存安装，互不干扰。
 
@@ -45,9 +45,12 @@ Havenx 在继承原版全部强大功能的基础上，专属引入了 **ServerB
   - 系统平均负载（1m / 5m / 15m）
   - 磁盘存储使用率（已用 / 总计）
 - **智能安全探活 (`TunnelResolver`)**：内置智能隧道解析机制，支持通过 Tailscale 网状局域网或 SSH 端口转发安全探活内网/私有云主机，无需将服务器暴露在公网。
+- **隧道保活宽限期与 Headless 隔离**：内置空闲保活机制与 Headless 进程隔离，避免桌面监控小组件后台轮询导致主 SSH / Tailscale 隧道频繁重连或被意外抢占。
 - **低功耗与快捷交互**：基于 Android WorkManager 智能后台调度，低开销异步更新；点击桌面卡片一键直达对应主机的终端会话。
 
 ### 2. ⚡ 零延迟沉浸式终端与多会话管理
+- **Termius 启动零延迟预测量架构**：在终端初次建立会话时通过 `TerminalDimensionsStore` 提前注入真实网格尺寸，彻底根治首次启动时因尺寸未决导致的提示符折行、MOTD 乱序重叠覆盖与布局闪烁。
+- **Termius Run-Length 批量渲染与亚像素文本度量**：集成 Termius 终端渲染架构补丁，引入连续相同样式字符批处理合并绘制与亚像素文本度量定位，大幅降低渲染重绘开销，带来高刷屏下如丝顺滑的滚动质感。
 - **Frame 0 默认全屏沉浸**：打开终端会话即刻以全屏沉浸模式呈现，从第零帧彻底消除状态栏遮挡、延迟跳动与黑边。
 - **紧凑型会话胶囊指示器**：在多会话并存时，右上角浮动紧凑胶囊（如 `1/3`、`2/3`）直观呈现当前标签序号与总会话数，并附带主机在线状态指示点。
 - **画布直通常驻切换菜单**：在全屏状态下一键呼出会话切换抽屉或退出全屏，无需打破沉浸感。
