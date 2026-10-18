@@ -37,11 +37,17 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
@@ -80,6 +86,7 @@ import androidx.compose.ui.zIndex
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import sh.haven.core.data.preferences.TabVisibility
 import sh.haven.core.data.preferences.UserPreferencesRepository
 import sh.haven.core.data.repository.ConnectionRepository
@@ -101,7 +108,7 @@ import sh.haven.feature.terminal.TerminalScreen
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HavenNavHost(
     preferencesRepository: UserPreferencesRepository,
@@ -1003,10 +1010,12 @@ fun HavenNavHost(
         userMessageBus.messages.collect { msg ->
             // Simple dedupe: skip if identical to the currently-shown message.
             if (globalSnackbarHostState.currentSnackbarData?.visuals?.message != msg.text) {
-                globalSnackbarHostState.showSnackbar(
-                    message = msg.text,
-                    duration = SnackbarDuration.Long,
-                )
+                withTimeoutOrNull(2500L) {
+                    globalSnackbarHostState.showSnackbar(
+                        message = msg.text,
+                        duration = SnackbarDuration.Indefinite,
+                    )
+                }
             }
         }
     }
@@ -1035,7 +1044,28 @@ fun HavenNavHost(
         } else {
             ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.ime)
         },
-        snackbarHost = { SnackbarHost(globalSnackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(globalSnackbarHostState) { data ->
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        if (value != SwipeToDismissBoxValue.Settled) {
+                            data.dismiss()
+                            true
+                        } else false
+                    }
+                )
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = {},
+                    content = {
+                        Snackbar(
+                            modifier = Modifier.clickable { data.dismiss() },
+                            snackbarData = data,
+                        )
+                    }
+                )
+            }
+        },
         bottomBar = {
             // hideNavBarInTerminal (#521) hides only Haven's own tab bar while
             // the Terminal screen is selected; system bars are untouched. The

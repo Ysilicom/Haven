@@ -580,12 +580,7 @@ class ConnectionsViewModel @Inject constructor(
             val time = android.text.format.DateFormat.getTimeFormat(appContext)
                 .format(java.util.Date(latest.timestampMs))
             val cause = appContext.getString(processExitCauseRes(latest.kind))
-            userMessageBus.emit(
-                sh.haven.core.data.message.UserMessage(
-                    appContext.getString(R.string.connections_process_killed_banner, time, cause),
-                    sh.haven.core.data.message.UserMessage.Severity.ERROR,
-                ),
-            )
+            Log.i(TAG, "Previous process was killed by system at $time ($cause) with active sessions")
         }
     }
 
