@@ -87,8 +87,17 @@ class TerminalDimensionsStore @Inject constructor(
             val rawCharHeight = ceil(fontMetrics.descent - fontMetrics.ascent)
             val charHeight = if (rawCharHeight > 0f) rawCharHeight else 20f
 
-            // Account for system status bar, action bar/tab bar, and terminal toolbar (approx 130dp)
-            val overheadPx = 130f * metrics.density
+            val isFullscreen = try {
+                runBlocking { preferencesRepository.autoFullscreenInTerminal.first() }
+            } catch (_: Exception) {
+                true
+            }
+
+            // In immersive fullscreen, the system status bar and top tab bar are hidden,
+            // leaving only the terminal keyboard toolbar (approx 48dp).
+            // When not fullscreen, status bar (~32dp) + tab bar (~50dp) + keyboard toolbar (~48dp) total approx 130dp.
+            val overheadDp = if (isFullscreen) 48f else 130f
+            val overheadPx = overheadDp * metrics.density
             val availableHeightPx = (heightPx - overheadPx).coerceAtLeast(heightPx * 0.5f)
 
             val cols = (widthPx / charWidth).toInt().coerceIn(MIN_COLUMNS, MAX_COLUMNS)
